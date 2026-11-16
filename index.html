@@ -96,6 +96,7 @@ table.rates input{font-size:15px}
 
       <section class="card">
         <h2>Trip details</h2>
+        <p class="readbar" id="tripmsg" hidden></p>
         <div class="row">
           <div class="field"><span class="lbl">Policy type</span>
             <div class="pills" data-group="yearly">
@@ -131,7 +132,7 @@ table.rates input{font-size:15px}
 
       <section class="card">
         <h2>Plan screenshot</h2>
-        <p class="hint">Set up the case on the website, screenshot the plans table, then paste it here with Ctrl+V. The prices are read from it, and it is attached to the PDF as the benefits page. You can add more images; each becomes its own page.</p>
+        <p class="hint">Paste two screenshots from the website here with Ctrl+V: the Travel information page fills in the trip details, and the plans table fills in the prices and is attached to the PDF as the benefits page.</p>
         <div class="drop" id="drop" tabindex="0" role="button" aria-label="Attach plan screenshot">
           <b>Paste, drop or <u>choose</u> a screenshot</b>
           <span>PNG or JPG</span>
@@ -682,13 +683,84 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return out;
   }
 
-  async function readPlans(dataUrl, onStatus){
+  // ---- Travel information screenshot: which options are selected, children, region, dates ----
+  function isTripPage(text){ return /coverage\s*type|travel\s*information|children\s*travel/i.test(text); }
+
+  // Share of strongly orange pixels inside a box (the website highlights the chosen option in orange)
+  function orangeShare(cv, b){
+    const pad = Math.max(4, (b.y1-b.y0)*0.6);
+    const x = Math.max(0, Math.floor(b.x0-pad)), y = Math.max(0, Math.floor(b.y0-pad));
+    const w = Math.min(cv.width-x, Math.ceil(b.x1-b.x0+2*pad)), h = Math.min(cv.height-y, Math.ceil(b.y1-b.y0+2*pad));
+    if (w<=0 || h<=0) return 0;
+    const d = cv.getContext('2d').getImageData(x, y, w, h).data; let n=0;
+    for (let i=0;i<d.length;i+=4){ const r=d[i], g=d[i+1], bl=d[i+2]; if (r>200 && g>80 && g<175 && bl<90) n++; }
+    return n/(w*h);
+  }
+
+  function toISO(s){ const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(!m) return null; return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+
+  function parseTrip(data, cv){
+    const words = data.words || [], lines = data.lines || [];
+    const bx = w => w.bbox;
+    const find = re => words.filter(w => re.test((w.text||'').trim()));
+    const pick = (re) => { const ws = find(re); if (!ws.length) return null; return Math.max(...ws.map(w=>orangeShare(cv, bx(w)))); };
+    const out = {};
+    // Two options each; the highlighted one is orange. White-on-orange text can be missed, so an unhighlighted
+    // option that was read means the other one is chosen.
+    const choose = (a, b) => {
+      if (a!=null && b!=null) return b > a;
+      if (a!=null) return a < 0.05;        // only option A read: B is chosen if A isn't orange
+      if (b!=null) return b >= 0.05;
+      return undefined;
+    };
+    const yearly = choose(pick(/^per-?trip/i), pick(/^yearly/i));
+    if (yearly !== undefined) out.yearly = yearly;
+    let family = choose(pick(/^individual/i), pick(/^family$/i));
+    if (find(/^children$/i).length) family = true;   // the children field only shows for Family plans
+    if (family !== undefined) out.family = family;
+    // Number of children: first small number below the "children" label
+    const lab = find(/^children$/i)[0];
+    if (lab){
+      const L = bx(lab), h = L.y1-L.y0;
+      const n = words.filter(w => /^\d{1,2}$/.test((w.text||'').trim()) && w.bbox.y0 > L.y1 && w.bbox.y0 < L.y1 + h*6 && w.bbox.x0 < L.x1 + h*8)
+                     .sort((a,b)=>a.bbox.y0-b.bbox.y0)[0];
+      if (n) out.children = parseInt(n.text, 10);
+    }
+    // Region: first word under "Select a region"
+    const rl = find(/^region$/i)[0];
+    if (rl){
+      const R = bx(rl), h = R.y1-R.y0;
+      const r = words.filter(w => /^[A-Za-z][A-Za-z&\-]+$/.test((w.text||'').trim()) && w.bbox.y0 > R.y1 && w.bbox.y0 < R.y1 + h*5 && w.bbox.x0 < R.x1 + h*4)
+                     .sort((a,b)=>a.bbox.y0-b.bbox.y0)[0];
+      if (r) out.region = r.text.trim();
+    }
+    // Dates: the line with "end on" is the end date; the first other date is the start
+    const dated = lines.map(l => ({t:l.text||'', d:toISO(l.text||''), y:l.bbox.y0})).filter(l => l.d).sort((a,b)=>a.y-b.y);
+    const endL = dated.find(l => /end/i.test(l.t)), startL = dated.find(l => !/end/i.test(l.t));
+    if (startL) out.start = startL.d;
+    if (endL) out.end = endL.d; else if (dated.length > 1 && dated[1] !== startL) out.end = dated[1].d;
+    return out;
+  }
+
+  // Read any pasted screenshot: tells a Travel information page from a plans table
+  async function readImage(dataUrl, onStatus){
     if (!root.Tesseract) throw {code:'ocr_unavailable'};
     onStatus && onStatus('Loading the text reader (first time takes a few seconds)…');
     const worker = await getWorker();
-    onStatus && onStatus('Reading prices from the screenshot…');
+    onStatus && onStatus('Reading the screenshot…');
     const cv = await prepare(dataUrl);
     const {data} = await worker.recognize(cv);
+    if (isTripPage(data.text||'') && !/classic|deluxe|preferred/i.test(data.text||'')) return {kind:'trip', trip: parseTrip(data, cv)};
+    const policy = /per-?trip\s*policy\s*plans/i.test(data.text||'') ? 'pertrip' : /yearly\s*policy\s*plans/i.test(data.text||'') ? 'yearly' : null;
+    return {kind:'plans', policy, plans: await finishPlans(worker, cv, data)};
+  }
+
+  async function readPlans(dataUrl, onStatus){
+    const r = await readImage(dataUrl, onStatus);
+    return r.kind === 'plans' ? r.plans : [];
+  }
+
+  async function finishPlans(worker, cv, data){
     const plans = parse(data.words || []);
     for (const p of plans){
       if (p.oBox && !sane(p.price, p.original)){
@@ -715,7 +787,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     plans.forEach(p => { p.originalMissing = p.original==null && !!p.oBox; delete p.oBox; });
     return plans;
   }
-  root.OCRPrices = {readPlans, parse};
+  root.OCRPrices = {readPlans, readImage, parse};
 })(this);
 </script>
 <script>// Quote maths + PDF drawing (three designs). Browser: window.Quote; Node: module.exports
@@ -1099,6 +1171,16 @@ For each plan give:
 Also give "tab": the selected tab name if tabs are shown (e.g. "Standard" or "Enhanced PreX"), else null.
 Use only numbers you can actually see. If a price is unreadable use null.
 Reply with only JSON like: {"tab":"Standard","plans":[{"name":"Classic","price":471,"original":628,"basis":"flat","selected":true}]}`;
+function showPlans(found){
+  plans = found.filter(p=>p.price!=null);
+  if(!plans.length){ $('readmsg').textContent='Couldn’t find plan prices in the screenshot. Type them in below, or try a sharper screenshot of the plans table.'; chosen=-1; update(); return; }
+  const sel = plans.findIndex(p=>p.selected);
+  const miss = plans.filter(p=>p.originalMissing).map(p=>p.name), inf = plans.filter(p=>p.inferred).map(p=>p.name);
+  $('readmsg').textContent='Read '+plans.length+' plan'+(plans.length===1?'':'s')+'. Check the amounts match the screenshot before downloading.'
+    + (miss.length ? ' Couldn’t read the crossed-out price for '+miss.join(', ')+', so type it into “Price before promotion”.' : '')
+    + (inf.length ? ' The crossed-out price for '+inf.join(', ')+' was worked out from the same discount as the other plans, so double-check it.' : '');
+  pickPlan(sel>=0 ? sel : 0);
+}
 let readCtl=null;
 async function readPrices(){
   if(!attached.length) return;
@@ -1109,6 +1191,7 @@ async function readPrices(){
     $('reread').hidden=false; $('reread').disabled=true;
     try{
       const found = await OCRPrices.readPlans(attached[0].dataUrl, m=>{ $('readmsg').textContent=m; });
+      showPlans(found); return;
       plans = found.filter(p=>p.price!=null);
       if(!plans.length){ $('readmsg').textContent='Couldn’t find plan prices in the screenshot. Type them in below, or try a sharper screenshot of the plans table.'; chosen=-1; update(); return; }
       const sel = plans.findIndex(p=>p.selected);
@@ -1178,9 +1261,42 @@ function loadImage(file){
     img.src=url;
   });
 }
+// Fill the trip details from a Travel information screenshot
+function applyTrip(t){
+  const got=[];
+  if(t.yearly!=null){ st.yearly=t.yearly; got.push(t.yearly?'Yearly':'Per-trip'); }
+  if(t.family!=null){ st.family=t.family; got.push(t.family?'Family':'Individual/Group'); }
+  if(t.family && t.children!=null){ st.children=t.children; got.push(t.children+(t.children===1?' child':' children')); }
+  if(t.region){
+    const sel=$('region'), want=t.region.toLowerCase();
+    let opt=[...sel.options].find(o=>o.text.toLowerCase()===want);
+    if(!opt){ opt=new Option(t.region[0].toUpperCase()+t.region.slice(1)); sel.add(opt); }
+    sel.value=opt.value; got.push(opt.text);
+  }
+  if(t.start){ $('start').value=t.start; got.push('starts '+t.start.split('-').reverse().join('/')); }
+  if(t.end && st.yearly===false){ $('end').value=t.end; got.push('ends '+t.end.split('-').reverse().join('/')); }
+  const m=$('tripmsg'); m.hidden=false;
+  m.textContent = got.length ? 'Filled from your Travel information screenshot: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the trip details from that screenshot. Set them below.';
+  update();
+}
 async function addFiles(files){
   const imgs=[...files].filter(f=>f && f.type && f.type.startsWith('image/'));
   if(!imgs.length){ $('status').className='status err'; $('status').textContent='That isn’t an image. Attach a PNG or JPG screenshot.'; return; }
+  if(!canRead && window.OCRPrices){
+    // Public version: sort each screenshot. Travel information fills the form; plan tables are attached and priced.
+    for(const f of imgs){
+      let im; try{ im=await loadImage(f); }catch(e){ continue; }
+      $('readbar').hidden=false; $('reread').disabled=true;
+      let r=null;
+      try{ r=await OCRPrices.readImage(im.dataUrl, m=>{ $('readmsg').textContent=m; }); }catch(e){}
+      $('reread').disabled=false;
+      if(r && r.kind==='trip'){ applyTrip(r.trip); $('readbar').hidden = !attached.length; continue; }
+      attached.push(im); renderThumbs();
+      if(r && r.policy){ st.yearly = r.policy==='yearly'; }
+      if(r) showPlans(r.plans||[]); else { $('readmsg').textContent='Couldn’t read the screenshot here. Type the plan’s prices into the boxes below.'; update(); }
+    }
+    return;
+  }
   const wasEmpty = !attached.length;
   for(const f of imgs){ try{ attached.push(await loadImage(f)); }catch(e){} }
   renderThumbs(); update();
