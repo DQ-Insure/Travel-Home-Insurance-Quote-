@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Income Quote Generator</title><style>[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0}</style></head><body><title>Income Quote Generator</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DQ Insure Quote Generator</title><style>[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0}</style></head><body><title>DQ Insure Quote Generator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 <style>
@@ -88,6 +88,39 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
 .meta{font-size:12.5px;opacity:.95;display:flex;flex-direction:column;gap:2px;word-break:break-word}
 .status{font-size:13px;min-height:1.2em;margin:0;font-weight:600}
 .status.err{background:var(--card);color:var(--err);border-radius:8px;padding:8px 10px}
+.motor{display:flex;flex-direction:column;gap:12px}
+.mbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.mtip{margin:0;font-size:14px;color:var(--muted)}
+.xdemo{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--chip);color:var(--fg);font-size:12px;font-weight:700}
+.mbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.gocopy{font:inherit;font-weight:800;border:0;border-radius:10px;padding:11px 18px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.mpreview{position:relative;background:#FFFFFF;border:1px solid var(--line);border-radius:12px;padding:20px;overflow-x:auto;color:#1F2633}
+#m-edit [contenteditable]{outline:none;border-radius:3px;cursor:text;min-width:12px;display:inline-block}
+#m-edit [contenteditable]:hover{background:#FFF4EA}
+#m-edit [contenteditable]:focus{background:#FFF4EA;box-shadow:0 0 0 2px #E8710A}
+#m-edit [contenteditable]:empty::before{content:attr(data-ph);color:#98A2B3}
+.mx{font:inherit;font-size:13px;font-weight:700;line-height:1;width:22px;height:22px;border-radius:50%;border:0;background:#EEF2F7;color:#5D6675;cursor:pointer;padding:0}
+.mx:hover,.mx:focus-visible{background:#FEE4E2;color:#B42318}
+.mx.add:hover,.mx.add:focus-visible{background:#FFF4EA;color:#C85F06}
+.gut{white-space:nowrap}
+.gut{border:0!important;background:#FFFFFF!important;padding:0 0 0 8px!important;vertical-align:middle;width:30px}
+.picks{position:absolute;transform:translateX(-50%);display:flex;gap:4px;padding:4px;background:#FFFFFF;border:1px solid #CBD2DC;border-radius:999px;box-shadow:0 4px 14px rgba(20,35,75,.14);z-index:5}
+.pick{font:inherit;font-size:12.5px;font-weight:700;border:0;border-radius:999px;padding:6px 12px;background:#EEF2F7;color:#14234B;cursor:pointer}
+.pick:hover,.pick:focus-visible{background:#E8710A;color:#FFFFFF}
+.ins-wrap{position:relative;display:inline-block}
+.ins-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:10;min-width:280px;background:var(--card);border:1px solid var(--field);border-radius:12px;box-shadow:0 10px 28px rgba(20,35,75,.16);padding:6px;display:flex;flex-direction:column}
+.ins-opt{font:inherit;font-size:14px;text-align:left;border:0;background:transparent;color:var(--fg);padding:9px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px}
+.ins-opt:hover,.ins-opt:focus-visible{background:var(--chip);outline:none}
+.ins-opt .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.motor.over .mpreview{outline:2px dashed var(--accent);outline-offset:4px}
+.ins-q{font-size:13px;font-weight:700;color:var(--navy);padding:8px 10px 4px}
+.mtip{flex:1 1 100%;min-width:0;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:14px;color:var(--fg)}
+.mtip-h{display:block;font-size:13px;color:var(--navy);margin-bottom:4px}
+.mtip ul{margin:0;padding-left:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:8px 72px}
+.mtip{padding:14px 20px}
+.mtip li{color:var(--muted)}
+.mtip li b{color:var(--fg)}
+.mbar{align-items:flex-start}
 </style>
 
 <header class="top"><div class="in">
@@ -95,8 +128,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
 </div></header>
 
 <section class="hero"><div class="in">
-  <h1>Income Quote Generator for Travel &amp; Home</h1>
-  <p class="lead">Pick the policy, paste the screenshots from the Income website, and download a DQ Insure quote PDF.</p>
+  <h1>DQ Insure Quote Generator</h1>
   <div class="products" role="group" aria-label="Product">
     <button type="button" class="product" id="pr-travel" data-p="travel">
       <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
@@ -105,6 +137,10 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
     <button type="button" class="product" id="pr-home" data-p="home">
       <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></span>
       <span><b>Home insurance</b></span>
+    </button>
+    <button type="button" class="product" id="pr-motor" data-p="motor">
+      <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/></svg></span>
+      <span><b>Motor comparison</b></span>
     </button>
   </div>
 </div></section>
@@ -184,8 +220,576 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
       <p class="status" id="status"></p>
     </section>
   </form>
+  <section id="motor" class="motor" hidden aria-label="Motor comparison">
+    <div class="mbar">
+      <div class="mtip">
+        <b class="mtip-h">How to use</b>
+        <ul>
+          <li><b>Fill in figures:</b> press <b>Import quote</b>, or paste a screenshot with Ctrl+V. Works with screenshots, PDFs and Excel sheets.</li>
+          <li><b>Change anything:</b> click the text and type.</li>
+          <li><b>Quick answers:</b> click a cell and pick Yes, No or NA.</li>
+          <li><b>Add:</b> + Insurer, + Row, + Section, or <span class="xdemo" aria-hidden="true">+</span> beside a section to add a row there.</li>
+          <li><b>Remove:</b> click <span class="xdemo" aria-hidden="true">×</span> next to a row, section or insurer.</li>
+          <li><b>Send:</b> press <b>Copy for Outlook</b>, then Ctrl+V in your email.</li>
+        </ul>
+      </div>
+      <div class="mbtns">
+        <span class="ins-wrap"><button type="button" class="pill" id="m-add-ins" aria-haspopup="true">+ Insurer</button><span class="ins-menu" id="m-ins-menu" hidden role="menu" aria-label="Choose an insurer"></span></span>
+        <button type="button" class="pill" id="m-add-row">+ Row</button>
+        <button type="button" class="pill" id="m-add-sec">+ Section</button>
+        <button type="button" class="pill" id="m-import">Import quote</button>
+        <input type="file" id="m-file" accept="image/*,.pdf,.xlsx,.xls,.xlsm,.csv" multiple hidden>
+        <button type="button" class="pill" id="m-reset">Start over</button>
+        <button type="button" class="gocopy" id="m-copy">Copy for Outlook</button>
+      </div>
+    </div>
+    <p class="status" id="m-status" aria-live="polite"></p>
+    <div class="mpreview"><div id="m-edit"></div><div class="picks" id="m-picks" hidden role="group" aria-label="Quick values"></div></div>
+  </section>
 </div></main>
 
+<script>// Motor comparison board: editable table -> email-safe HTML (Outlook) with insurer brand colours.
+(function(root){
+  const STORE = 'dq-motor-board-v11';
+  const NAVY = '#14234B', MUTED = '#5D6675', LINE = '#D6DEE8', FG = '#1F2633';
+  // Principal brand colours, matched from the insurer's name
+  const BRAND = [
+    {re:/income/i, color:'#F47920'},
+    {re:/tokio|tmis|\btm\b/i, color:'#0067B1'},
+    {re:/\biii\b|india international/i, color:'#00873E'},
+    {re:/liberty/i, color:'#1A1446'},
+    {re:/etiqa/i, color:'#C68A00'},
+    {re:/\bctp\b|china taiping/i, color:'#B5121B'},
+    {re:/allianz/i, color:'#003781'},
+    {re:/msig/i, color:'#E60012'},
+  ];
+
+  const brandFor = name => (BRAND.find(b => b.re.test(name||'')) || {color:NAVY}).color;
+
+  // Known insurers for "+ Insurer": every row filled from your master template and payment sheet. Blank = not provided.
+  const AW = 'Comprehensive Authorised Workshop Plan';
+  const LIBRARY = [
+    {name:'III (India International Insurance)', plan:'Comprehensive Any Workshop Plan', premium:'$930.40', ncd:'No', od:'$600', tp:'', waiver:'NA', windscreen:'$100', accessory:'No', lou:'NA', towing:'$300',
+     banks:'DBS/POSB', period:'', min:'', unnamed:'$1,100', unnamedYeid:'$2,500', yeid:'< 21 yrs or > 75 yrs and/or driving experience < 2 years'},
+    {name:'TMIS (Tokio Marine Insurance Singapore)', plan:AW, premium:'$930.40', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'$100', accessory:'No', lou:'No', towing:'$500',
+     banks:'OCBC', period:'', min:'', unnamed:'$500', unnamedYeid:'$3,500', yeid:'Below 26 yrs and/or driving experience less than 2 years'},
+    {name:'Income', plan:AW, premium:'$930.40', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'$100', accessory:'No', lou:'$50 per day for up to 7 days', towing:'$500',
+     banks:'POSB/DBS/OCBC', period:'', min:'', unnamed:'$500', unnamedYeid:'$2,500', yeid:'Below 27 yrs and/or driving experience less than 1 year'},
+    {name:'Etiqa', plan:AW, premium:'$1,281.11', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'$100', accessory:'No', lou:'No', towing:'',
+     banks:'Maybank', period:'', min:'', unnamed:'$1,100', unnamedYeid:'$4,000', yeid:'Below 27 yrs and/or Above 75 yrs and/or driving experience less than 2 years'},
+    {name:'Liberty', plan:AW, premium:'$1,578.90', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'$100', accessory:'', lou:'', towing:'',
+     banks:'UOB (6 and 12 months, minimum $500)\nDBS/POSB (3, 6 and 12 months, minimum $50)\n0% interest', period:'', min:'', unnamed:'$1,100', unnamedYeid:'$3,000', yeid:'Below 24 yrs and/or Above 70 yrs and/or driving experience less than 2 years'},
+    {name:'Allianz', plan:AW, premium:'$1,578.90', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'$100', accessory:'', lou:'', towing:'',
+     banks:'Standard Chartered Bank Visa or Mastercard (6 and 12 months)', period:'', min:'', unnamed:'$500', unnamedYeid:'$2,500', yeid:'Below 27 yrs and/or driving experience less than 1 year'},
+    {name:'MSIG', plan:AW, premium:'$1,578.90', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'$100', accessory:'', lou:'', towing:'',
+     banks:'', period:'', min:'', unnamed:'NA', unnamedYeid:'$3,000', yeid:'Below 27 yrs and/or driving experience less than 2 years'},
+    {name:'China Taiping', plan:AW, premium:'$1,578.90', ncd:'No', od:'$600', tp:'', waiver:'No', windscreen:'', accessory:'', lou:'', towing:'',
+     banks:'OCBC (6 and 12 months, minimum S$500)\n0% interest instalment plan', period:'', min:'', unnamed:'', unnamedYeid:'', yeid:''},
+  ];
+  // Which row each library field belongs to (order matters: the YEID unnamed-driver row before the plain one)
+  const ROWMAP = [
+    {re:/workshop/i, key:'plan'}, {re:/premium with/i, key:'premium'}, {re:/ncd/i, key:'ncd'}, {re:/own damage/i, key:'od'},
+    {re:/third party/i, key:'tp'}, {re:/waiver/i, key:'waiver'}, {re:/windscreen/i, key:'windscreen'}, {re:/accessor/i, key:'accessory'},
+    {re:/loss of use/i, key:'lou'}, {re:/towing/i, key:'towing'}, {re:/credit card instal|participating banks/i, key:'banks'}, {re:/instalment period/i, key:'period'},
+    {re:/minimum premium/i, key:'min'}, {re:/unnamed driver.*yeid/i, key:'unnamedYeid'}, {re:/unnamed driver/i, key:'unnamed'}, {re:/excess applies|young/i, key:'yeid'},
+  ];
+  const keyFor = label => (ROWMAP.find(r => r.re.test(label||'')) || {}).key;
+  const libFor = name => brandFor(name) !== NAVY ? LIBRARY.find(l => brandFor(l.name) === brandFor(name)) : LIBRARY.find(l => l.name.toLowerCase() === String(name||'').toLowerCase());
+  // Fill a column from the library; onlyBlank keeps anything already typed
+  function fillColumn(i, lib, onlyBlank){
+    const changed = [];
+    board.rows.forEach((r, idx) => { if (r.section) return; const k = keyFor(r.label);
+      if (k && lib[k] && (!onlyBlank || !String(r.values[i]||'').trim())){ r.values[i] = lib[k]; changed.push(idx); } });
+    return changed;
+  }
+
+  const EXAMPLE = {
+    title: '',
+    insurers: [
+      {name:'III (India International Insurance)', color:'#00873E'},
+      {name:'TMIS (Tokio Marine Insurance Singapore)', color:'#0067B1'},
+      {name:'Income', color:'#F47920'},
+    ],
+    rows: [
+      ['Workshop Plan', 'Comprehensive Any Workshop Plan','Comprehensive Authorised Workshop Plan','Comprehensive Authorised Workshop Plan'],
+      ['Premium with 9% GST', '$930.40','$930.40','$930.40'],
+      ['#Excess'],
+      ['Own Damage Excess (Sect I)', '$600','$600','$600'],
+      ['Third Party Excess (Sect II)', '','',''],
+      ['Waiver of Excess', 'NA','No','No'],
+      ['Windscreen Excess', '$100','$100','$100'],
+      ['Unnamed Driver additional excess', '$1,100','$500','$500'],
+      ['Unnamed Driver additional excess (YEID)', '$2,500','$3,500','$2,500'],
+      ['Young & Elderly & Inexperienced Driver (YEID) Excess Applies', '< 21 yrs or > 75 yrs and/or driving experience < 2 years','Below 26 yrs and/or driving experience less than 2 years','Below 27 yrs and/or driving experience less than 1 year'],
+      ['#Benefits'],
+      ['NCD Protector', 'No','No','No'],
+      ['Loss Of Use Benefit', 'NA','No','$50 per day for up to 7 days'],
+      ['Accident Towing Cover', '$300','$500','$500'],
+      ['#Credit Card Instalment'],
+      ['Participating Banks', 'DBS/POSB','OCBC','POSB/DBS/OCBC'],
+    ].map(([label, ...values]) => label[0]==='#' ? {section:true, label:label.slice(1), values:[]} : {label, values}),
+  };
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const load = () => { try{ const s = JSON.parse(localStorage.getItem(STORE)); if (s && Array.isArray(s.insurers) && Array.isArray(s.rows)) return s; }catch(e){} return clone(EXAMPLE); };
+  const save = () => { try{ localStorage.setItem(STORE, JSON.stringify(board)); }catch(e){} };
+  let board = null;
+
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const br = s => esc(s).replace(/\n/g,'<br>');
+  const isPremium = r => !r.section && /premium/i.test(r.label), isCover = r => !r.section && /type of cover/i.test(r.label), isShop = r => !r.section && /workshop/i.test(r.label);
+
+  // Section band colours: kept away from the insurers' green, blue and orange
+  // Pale yellow bands with dark text; the left bar steps from deep to light amber so sections stay distinguishable
+  const SECTION_COLOURS = [];
+  const SECTION_CYCLE = [
+    {bg:'#FFFAEA', ink:'#1F2633', bar:'#E9B949'},
+    {bg:'#FFFAEA', ink:'#1F2633', bar:'#F2D27A'},
+    {bg:'#FFFAEA', ink:'#1F2633', bar:'#F8E5AE'},
+  ];
+  const sectionColour = (label, n) => SECTION_COLOURS.find(s => s.re.test(label||'')) || SECTION_CYCLE[n % SECTION_CYCLE.length];
+
+  // ---- Premium cards (shared by the copied email and the editor) ----
+  // One table, three rows (name · price · workshop plan) so every card's parts line up across insurers.
+  function cardsTable(o){
+    const n = board.insurers.length, W = 680, gap = 10, cw = Math.floor((W - gap*(n-1))/n), font = 'font-family:Arial,Helvetica,sans-serif;';
+    const txt = o.text, x = o.remove || (() => '');
+    const prem = board.rows.find(isPremium), cover = board.rows.find(isCover), shop = board.rows.find(isShop);
+    const ri = r => board.rows.indexOf(r);
+    const sp = `<td width="${gap}" style="width:${gap}px;font-size:0;line-height:0;">&nbsp;</td>`;
+    const row = cells => `<tr>${cells.join(sp)}</tr>`;
+    let h = `<table role="presentation" width="${W}" cellpadding="0" cellspacing="0" border="0" style="${font}width:${W}px;border-collapse:collapse;color:${FG};">`;
+    // 1 · insurer name under a colour bar
+    h += row(board.insurers.map((ins, i) => { const c = ins.color || brandFor(ins.name);
+      return `<td width="${cw}" valign="top" data-col="${i}" data-role="card" style="${font}width:${cw}px;border-top:6px solid ${c};border-left:1px solid ${LINE};border-right:1px solid ${LINE};padding:12px 14px 0 14px;background:#FFFFFF;font-size:14px;font-weight:bold;color:${NAVY};line-height:18px;">${o.remove ? `<div style="position:relative;padding-right:30px">${txt(ins.name, 'ins:'+i, 'Insurer name')}${x(i, ins)}</div>` : txt(ins.name, 'ins:'+i, 'Insurer name')}</td>`; }));
+    // 2 · premium
+    if (!prem) h += row(board.insurers.map(() => `<td style="border:1px solid ${LINE};border-top:0;font-size:0;line-height:0;height:12px;">&nbsp;</td>`));
+    if (prem) h += row(board.insurers.map((ins, i) => { const c = ins.color || brandFor(ins.name);
+      return `<td width="${cw}" valign="bottom" style="${font}width:${cw}px;border-left:1px solid ${LINE};border-right:1px solid ${LINE};border-bottom:1px solid ${LINE};padding:10px 14px 12px 14px;background:#FFFFFF;">`
+        + `<div data-col="${i}" data-role="price" style="${font}font-size:26px;font-weight:bold;color:${c};line-height:32px;">${txt(prem.values[i], 'cell:'+ri(prem)+':'+i, '$0.00', '—')}</div>`
+        + `<div style="${font}font-size:11px;color:${MUTED};">Premium with GST</div></td>`; }));
+    // 3 · workshop plan in a second, separate box under each card
+    if (cover || shop) h += `<tr><td colspan="${n*2-1}" style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>`;
+    if (cover || shop) h += row(board.insurers.map((ins, i) => {
+      const parts = [cover && txt(cover.values[i], 'cell:'+ri(cover)+':'+i, 'Coverage'), shop && txt(shop.values[i], 'cell:'+ri(shop)+':'+i, 'Workshop plan')].filter(Boolean);
+      return `<td width="${cw}" valign="top" style="${font}width:${cw}px;border:1px solid ${LINE};background:#F5F7FA;padding:10px 14px;font-size:12px;line-height:16px;color:${FG};">`
+        + `<div style="${font}font-size:10px;font-weight:bold;color:${MUTED};letter-spacing:1px;text-transform:uppercase;padding-bottom:3px;">${shop ? esc(shop.label) : 'Plan'}</div>${parts.join(' · ')}</td>`; }));
+    return h + `</table>`;
+  }
+
+  // ---- Cover details table (shared by the copied email and the editor) ----
+  // Header: white cells, insurer name in its colour with a coloured underline. Body: shaded section bands,
+  // striped rows, grey row names and bold values.
+  function detailTable(o){
+    const n = board.insurers.length, W = 680, LW = 210, cw = Math.floor((W-LW)/n), font = 'font-family:Arial,Helvetica,sans-serif;';
+    const txt = o.text, gut = o.gutter || (() => '');
+    const prem = board.rows.find(isPremium), cover = board.rows.find(isCover), shop = board.rows.find(isShop);
+    const rest = board.rows.filter(r => r!==prem && r!==cover && r!==shop);
+    if (!rest.length) return '';
+    let h = `<table width="${W}" cellpadding="0" cellspacing="0" border="0" style="${font}width:${W}px;border-collapse:collapse;font-size:12.5px;color:${FG};">`;
+    h += `<tr><td width="${LW}" style="${font}width:${LW}px;background:#F5F7FA;border:1px solid ${LINE};padding:10px;color:${MUTED};font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">Insurer</td>`;
+    board.insurers.forEach((ins, i) => { const c = ins.color || brandFor(ins.name);
+      h += `<td width="${cw}" align="center" data-col="${i}" data-role="head" style="${font}width:${cw}px;background:#FFFFFF;border:1px solid ${LINE};border-bottom:4px solid ${c};padding:10px 8px;font-weight:bold;font-size:13px;color:${c};">${txt(ins.name, 'ins:'+i, 'Insurer name')}</td>`; });
+    h += gut('head') + `</tr>`;
+    let k = 0, sn = 0;
+    rest.forEach(r => {
+      const idx = board.rows.indexOf(r);
+      if (r.section){
+        k = 0;
+        h += `<tr><td colspan="${n+1}" style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>`;   // gap above each section, kept separate so the header underline stays visible
+        const sc = sectionColour(r.label, sn++);
+        h += `<tr><td colspan="${n+1}" data-sec="${idx}" style="${font}background:${sc.bg};color:${sc.ink};border-left:5px solid ${sc.bar};font-weight:bold;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:9px 10px;">${txt(r.label, 'label:'+idx, 'Section name')}</td>${gut('section', idx, r)}</tr>`;
+        return;
+      }
+      const bg = k++ % 2 ? '#F7F9FC' : '#FFFFFF';
+      h += `<tr><td style="${font}background:${bg};padding:9px 10px;border-bottom:1px solid ${LINE};color:${MUTED};">${txt(r.label, 'label:'+idx, 'Row name')}</td>`;
+      board.insurers.forEach((_, i) => { h += `<td align="center" style="${font}background:${bg};padding:9px 8px;border-bottom:1px solid ${LINE};border-left:3px solid #FFFFFF;font-weight:bold;color:${FG};">${txt(r.values[i], 'cell:'+idx+':'+i, '–', true)}</td>`; });
+      h += gut('row', idx, r) + `</tr>`;
+    });
+    return h + `</table>`;
+  }
+
+  // ---- Email HTML: tables + inline styles only (Outlook's Word renderer ignores flex, grid, radius, shadows) ----
+  function emailHTML(){
+    const n = board.insurers.length; if (!n) return '<p style="font-family:Arial,sans-serif">Add an insurer to start.</p>';
+    const W = 680, font = "font-family:Arial,Helvetica,sans-serif;";
+    const prem = board.rows.find(isPremium), cover = board.rows.find(isCover), shop = board.rows.find(isShop);
+    const gap = 10, cardW = Math.floor((W - gap*(n-1))/n);
+    let h = `<table role="presentation" width="${W}" cellpadding="0" cellspacing="0" border="0" style="${font}width:${W}px;border-collapse:collapse;color:${FG};">`;
+    if (board.title && board.title.trim())
+      h += `<tr><td style="${font}font-size:20px;font-weight:bold;color:${NAVY};padding:0 0 12px 0;">${esc(board.title)}</td></tr>`;
+    // Cards
+    h += `<tr><td style="padding:0 0 16px 0;">${cardsTable({text: (v, k, ph, dash) => (v && String(v).trim()) ? br(v) : (dash || '')})}</td></tr>`;
+    // Details table
+    const tbl = detailTable({text: (v, k, ph, dash) => (v && String(v).trim()) ? br(v) : (dash ? '&ndash;' : '')});
+    if (tbl){
+      h += `<tr><td style="${font}font-size:15px;font-weight:bold;color:${NAVY};padding:0 0 8px 0;">Cover details</td></tr>`;
+      h += `<tr><td>${tbl}</td></tr>`;
+    }
+    h += `</table>`;
+    return h;
+  }
+  function emailText(){
+    const lines = [];
+    if (board.title) lines.push(board.title, '');
+    lines.push(['', ...board.insurers.map(i=>i.name)].join('\t'));
+    board.rows.forEach(r => lines.push(r.section ? '\n'+r.label.toUpperCase() : [r.label, ...board.insurers.map((_,i)=>r.values[i]||'')].join('\t')));
+    return lines.join('\n');
+  }
+
+  // ---- Editor: the email itself, with every text editable and × buttons beside rows and insurers ----
+  const $ = id => document.getElementById(id);
+  const ed = (text, key, ph, style) => `<span contenteditable="true" spellcheck="false" data-k="${key}" data-ph="${esc(ph||'')}" style="${style||''}">${br(text)}</span>`;
+  const ADD = (idx, label) => `<button type="button" class="mx add" data-add="${idx}" aria-label="${esc(label)}" title="${esc(label)}">+</button>`;
+  const X = (what, label) => `<button type="button" class="mx" data-del="${what}" aria-label="${esc(label)}" title="${esc(label)}">×</button>`;
+
+  function render(){
+    const box = $('m-edit'), n = board.insurers.length, font = 'font-family:Arial,Helvetica,sans-serif;';
+    const ri = r => board.rows.indexOf(r);
+    const prem = board.rows.find(isPremium), cover = board.rows.find(isCover), shop = board.rows.find(isShop);
+    let h = `<div style="${font}color:${FG};max-width:720px">`;
+    h += `<div style="font-size:20px;font-weight:bold;color:${NAVY};padding-bottom:12px">${ed(board.title, 'title', 'Heading (optional)')}</div>`;
+    if (!n){ box.innerHTML = h + `<p style="color:${MUTED}">No insurers yet. Press “+ Insurer”.</p></div>`; save(); return; }
+    // Cards (same as the email, plus a × to remove each insurer)
+    h += `<div style="padding-bottom:16px">` + cardsTable({
+      text: (v, k, ph) => ed(v, k, ph),
+      remove: (i, ins) => `<span style="position:absolute;top:-3px;right:-6px">${X('ins:'+i, 'Remove '+(ins.name||'this insurer'))}</span>`
+    }) + `</div>`;
+    // Details table (same as the email, plus × and + beside rows and sections)
+    const tbl = detailTable({
+      text: (v, k, ph) => ed(v, k, ph),
+      gutter: (kind, idx, r) => kind==='head' ? '<td class="gut"></td>'
+        : kind==='section' ? `<td class="gut">${X('row:'+idx, 'Remove section heading '+(r.label||''))} ${ADD(idx, 'Add a row to '+(r.label||'this section'))}</td>`
+        : `<td class="gut">${X('row:'+idx, 'Remove row '+(r.label||''))}</td>`
+    });
+    if (tbl) h += `<div style="font-size:15px;font-weight:bold;color:${NAVY};padding-bottom:8px">Cover details</div>` + tbl;
+    h += `</div>`;
+    box.innerHTML = h;
+    if ($('m-picks')) hidePicks();
+    save();
+  }
+
+  // Keep the model in step with typing; recolour an insurer as its name changes
+  function onInput(e){
+    const t = e.target.closest('[data-k]'); if (!t) return;
+    const k = t.dataset.k.split(':');
+    const isSec = k[0]==='label' && board.rows[+k[1]] && board.rows[+k[1]].section;
+    const v = (isSec ? t.textContent : t.innerText).replace(/\n$/,'');   // section names are shown in capitals; keep what was typed
+    if (k[0]==='title') board.title = v;
+    else if (k[0]==='label') board.rows[+k[1]].label = v;
+    else if (k[0]==='cell') board.rows[+k[1]].values[+k[2]] = v;
+    else if (k[0]==='ins'){
+      const i = +k[1], ins = board.insurers[i]; ins.name = v; ins.color = brandFor(v);
+      const lib = brandFor(v) !== NAVY ? libFor(v) : null;
+      if (lib) fillColumn(i, lib, true).forEach(idx => { const c = document.querySelector(`#m-edit [data-k="cell:${idx}:${i}"]`); if (c) c.innerHTML = br(board.rows[idx].values[i]); });
+      document.querySelectorAll(`#m-edit [data-k="ins:${i}"]`).forEach(o => { if (o!==t) o.textContent = v; });
+      document.querySelectorAll(`#m-edit [data-col="${i}"]`).forEach(o => {
+        if (o.dataset.role==='card') o.style.borderTopColor = ins.color;
+        if (o.dataset.role==='price') o.style.color = ins.color;
+        if (o.dataset.role==='head'){ o.style.color = ins.color; o.style.borderBottomColor = ins.color; }
+      });
+    }
+    save();
+  }
+  function onClick(e){
+    const a = e.target.closest('[data-add]');
+    if (a){ // insert a new row at the end of that section
+      let at = +a.dataset.add + 1; while (at < board.rows.length && !board.rows[at].section) at++;
+      board.rows.splice(at, 0, {label:'', values: board.insurers.map(()=> '')}); render(); focusKey('label:'+at); return;
+    }
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    const [what, i] = b.dataset.del.split(':');
+    const wasSection = what==='row' && board.rows[+i] && board.rows[+i].section;
+    if (what==='row') board.rows.splice(+i, 1);
+    else { board.insurers.splice(+i, 1); board.rows.forEach(r => r.values.splice(+i, 1)); }
+    render();
+    $('m-status').className = 'status'; $('m-status').textContent = wasSection ? 'Section heading removed. Its rows join the section above.' : what==='row' ? 'Row removed.' : 'Insurer removed.';
+  }
+  // Paste plain text only, so formatting from elsewhere doesn't leak into the email
+  function onPaste(e){
+    if (!e.target.closest('[data-k]')) return;
+    e.preventDefault(); e.stopPropagation();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }
+
+  // Brief confirmation on the button itself instead of a message line
+  let flashT = null;
+  function copiedFlash(){
+    const btn = $('m-copy'), s = $('m-status');
+    s.className = 'status'; s.textContent = '';
+    if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+    btn.textContent = 'Copied ✓'; clearTimeout(flashT);
+    flashT = setTimeout(() => { btn.textContent = btn.dataset.label; }, 2000);
+  }
+  async function copy(){
+    const s = $('m-status'), html = emailHTML(), text = emailText();
+    const wrapped = `<html><body><!--StartFragment-->${html}<!--EndFragment--></body></html>`;
+    try{
+      if (navigator.clipboard && window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([wrapped], {type:'text/html'}), 'text/plain': new Blob([text], {type:'text/plain'})})]);
+      } else throw new Error('no clipboard api');
+      copiedFlash();
+    }catch(e){
+      // Fallback: select the rendered preview and copy it as rich text
+      try{
+        const tmp = document.createElement('div'); tmp.style.position='fixed'; tmp.style.left='-9999px'; tmp.innerHTML = html; document.body.appendChild(tmp);
+        const r = document.createRange(); r.selectNodeContents(tmp);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        const ok = document.execCommand('copy'); sel.removeAllRanges(); tmp.remove();
+        if (!ok) throw new Error('copy refused');
+        copiedFlash();
+      }catch(e2){
+        s.className = 'status err'; s.textContent = 'Your browser blocked copying. Try again, or use a different browser such as Chrome or Edge.';
+      }
+    }
+  }
+
+  // Quick picks: clicking a value shows Yes · No · NA buttons under it (not part of the email)
+  const PICKS = ['Yes','No','NA'];
+  const picksFor = label => /period|month|tenure/i.test(label||'') ? ['6 months','12 months','6 or 12 months','NA'] : PICKS;
+  let pickFor = null;
+  function showPicks(t){
+    const k = t.dataset.k.split(':'), row = board.rows[+k[1]];
+    $('m-picks').innerHTML = picksFor(row && row.label).map(p => `<button type="button" class="pick" data-pick="${p}">${p}</button>`).join('');
+    const bar = $('m-picks'), wrap = bar.parentElement, r = t.closest('td').getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    bar.style.left = (r.left - w.left + wrap.scrollLeft + r.width/2) + 'px';
+    bar.style.top = (r.bottom - w.top + wrap.scrollTop + 4) + 'px';
+    bar.hidden = false; pickFor = t;
+  }
+  function hidePicks(){ $('m-picks').hidden = true; pickFor = null; }
+  function setPick(v){
+    if (!pickFor) return;
+    const t = pickFor; t.textContent = v; onInput({target:t}); t.focus();
+    const sel = window.getSelection(), rg = document.createRange(); rg.selectNodeContents(t); rg.collapse(false); sel.removeAllRanges(); sel.addRange(rg);
+  }
+  function focusKey(k){ const t = document.querySelector(`#m-edit [data-k="${k}"]`); if (t) t.focus(); }
+  function init(){
+    board = load();
+    const box = $('m-edit');
+    box.addEventListener('input', onInput);
+    box.addEventListener('click', onClick);
+    box.addEventListener('paste', onPaste, true);
+    box.addEventListener('focusin', e => { const t = e.target.closest('[data-k^="cell:"]'); if (t && !t.closest('[data-role="price"]')) showPicks(t); else hidePicks(); });
+    box.addEventListener('focusout', () => setTimeout(() => { if (!box.contains(document.activeElement)) hidePicks(); }, 150));
+    $('m-picks').addEventListener('mousedown', e => { const b = e.target.closest('[data-pick]'); if (!b) return; e.preventDefault(); setPick(b.dataset.pick); });
+    $('m-picks').addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (b && pickFor) setPick(b.dataset.pick); });
+    const menu = $('m-ins-menu');
+    const addInsurer = (lib) => {
+      board.insurers.push({name: lib ? lib.name : '', color: lib ? brandFor(lib.name) : NAVY});
+      board.rows.forEach(r => r.values.push(''));
+      if (lib) fillColumn(board.insurers.length-1, lib, false);
+      menu.hidden = true; render();
+      if (!lib) focusKey('ins:'+(board.insurers.length-1));
+      $('m-status').className='status'; $('m-status').textContent = lib ? lib.name+' added with its details from your master template. Check the premium for this case.' : 'New insurer added. Type its name.';
+    };
+    $('m-add-ins').onclick = (e) => {
+      e.stopPropagation();
+      if (!menu.hidden){ menu.hidden = true; return; }
+      const have = board.insurers.map(i => brandFor(i.name)+'|'+i.name.toLowerCase());
+      const opts = LIBRARY.filter(l => !board.insurers.some(i => (brandFor(i.name)!==NAVY && brandFor(i.name)===brandFor(l.name)) || i.name.toLowerCase()===l.name.toLowerCase()));
+      menu.innerHTML = opts.map((l,k) => `<button type="button" class="ins-opt" data-lib="${LIBRARY.indexOf(l)}"><span class="dot" style="background:${brandFor(l.name)}"></span>${esc(l.name)}</button>`).join('')
+        + `<button type="button" class="ins-opt" data-lib="-1"><span class="dot" style="background:#CBD2DC"></span>Other insurer…</button>`;
+      menu.hidden = false;
+      const f = menu.querySelector('button'); if (f) f.focus();
+    };
+    menu.addEventListener('click', e => { const b = e.target.closest('[data-lib]'); if (!b) return; const i = +b.dataset.lib; addInsurer(i >= 0 ? LIBRARY[i] : null); });
+    document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden){ menu.hidden = true; $('m-add-ins').focus(); } });
+    $('m-add-row').onclick = () => { board.rows.push({label:'', values: board.insurers.map(()=> '')}); render();
+      const t = document.querySelector(`#m-edit [data-k="label:${board.rows.length-1}"]`); if (t) t.focus(); };
+    $('m-add-sec').onclick = () => { board.rows.push({section:true, label:'', values:[]}); render(); focusKey('label:'+(board.rows.length-1)); };
+    $('m-reset').onclick = () => { board = clone(EXAMPLE); render(); $('m-status').className='status'; $('m-status').textContent = 'Back to the example table.'; };
+    $('m-copy').onclick = copy;
+    $('m-import').onclick = () => $('m-file').click();
+    $('m-file').onchange = e => { importFiles([...e.target.files]); e.target.value = ''; };
+    const mz = $('motor');
+    mz.addEventListener('dragover', e => { e.preventDefault(); mz.classList.add('over'); });
+    mz.addEventListener('dragleave', e => { if (!mz.contains(e.relatedTarget)) mz.classList.remove('over'); });
+    mz.addEventListener('drop', e => { e.preventDefault(); mz.classList.remove('over'); importFiles([...e.dataTransfer.files]); });
+    document.addEventListener('paste', e => {
+      if (mz.hidden) return;
+      const files = [...(e.clipboardData?.items || [])].filter(it => it.kind === 'file').map(it => it.getAsFile()).filter(Boolean);
+      if (files.length){ e.preventDefault(); e.stopPropagation(); importFiles(files); }
+    }, true);
+    render();
+  }
+
+  // ================= Import: screenshot / PDF / Excel → board =================
+  const LIBS = {
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  };
+  const loaded = {};
+  const loadScript = url => loaded[url] || (loaded[url] = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = () => { delete loaded[url]; rej(new Error('Could not load '+url)); }; document.head.appendChild(s);
+  }));
+  const say = (msg, err) => { const s = $('m-status'); s.className = err ? 'status err' : 'status'; s.textContent = msg; };
+  const FIELD_NAMES = {plan:'Workshop plan', premium:'Premium', ncd:'NCD Protector', od:'Own damage excess', tp:'Third party excess', waiver:'Waiver of excess',
+    windscreen:'Windscreen excess', accessory:'Accessories', lou:'Loss of use', towing:'Towing', banks:'Instalment banks', period:'Instalment period',
+    min:'Instalment minimum', unnamed:'Unnamed driver excess', unnamedYeid:'Unnamed driver excess (YEID)', yeid:'YEID applies'};
+
+  // Put values into one insurer's column (adding the insurer if needed); returns the fields written
+  function applyFields(insName, fields){
+    let i = board.insurers.findIndex(x => (brandFor(x.name) !== NAVY && brandFor(x.name) === brandFor(insName)) || x.name.toLowerCase() === String(insName).toLowerCase());
+    if (i < 0){
+      const lib = libFor(insName);
+      board.insurers.push({name: lib ? lib.name : insName, color: brandFor(insName)});
+      board.rows.forEach(r => r.values.push(''));
+      i = board.insurers.length - 1;
+      if (lib) fillColumn(i, lib, false);   // start from what we know about this insurer; the file's figures go on top
+    }
+    const wrote = [];
+    board.rows.forEach(r => { if (r.section) return; const k = keyFor(r.label);
+      if (k && fields[k] != null && String(fields[k]).trim() !== ''){ r.values[i] = fields[k]; wrote.push(k); } });
+    return {col:i, wrote};
+  }
+
+  // ---- Spreadsheet (CSV / Excel): a comparison table with row labels down the left and insurers across the top ----
+  function workshopToPlan(v){ if (/any/i.test(v)) return 'Comprehensive Any Workshop Plan'; if (/authori[sz]ed/i.test(v)) return AW; return v; }
+  function importTable(rows){
+    rows = rows.map(r => (r||[]).map(c => c==null ? '' : String(c).trim()));
+    const hi = rows.findIndex(r => r.filter(c => brandFor(c) !== NAVY).length >= 2);
+    if (hi < 0) return null;
+    const head = rows[hi], cols = head.map((c, j) => brandFor(c) !== NAVY ? j : -1).filter(j => j >= 0);
+    const labelCol = head.findIndex((c, j) => j < cols[0]) >= 0 ? cols[0]-1 : 0;
+    const perIns = {}; cols.forEach(j => perIns[j] = {});
+    rows.slice(hi+1).forEach(r => {
+      const label = r[labelCol] || r.slice(0, cols[0]).filter(Boolean).pop() || '';
+      let k = keyFor(label);
+      if (/workshop/i.test(label)) cols.forEach(j => perIns[j].plan = workshopToPlan(r[j]));
+      else if (k) cols.forEach(j => perIns[j][k] = r[j]);
+    });
+    const done = [];
+    cols.forEach(j => { const res = applyFields(head[j], perIns[j]); if (res.wrote.length) done.push(board.insurers[res.col].name); });
+    return done;
+  }
+  async function readSpreadsheet(file){
+    if (/\.csv$/i.test(file.name) || file.type === 'text/csv'){
+      const text = await file.text();
+      return text.split(/\r?\n/).map(line => { const out = []; let cur = '', q = false;
+        for (let c of line){ if (c === '"'){ q = !q; continue; } if (c === ',' && !q){ out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; });
+    }
+    await loadScript(LIBS.xlsx);
+    const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+    // use the sheet that looks most like a comparison table
+    let best = null, bestScore = -1;
+    wb.SheetNames.forEach(n => { const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, raw:false, defval:''});
+      const score = rows.slice(0, 15).reduce((s, r) => Math.max(s, r.filter(c => brandFor(String(c)) !== NAVY).length), 0);
+      if (score > bestScore){ bestScore = score; best = rows; } });
+    return best || [];
+  }
+
+  // ---- A single insurer's quote (screenshot or PDF): find the insurer and read the fields by their labels ----
+  const MONEY = /S?\$\s?\d[\d,]*(?:\.\d{2})?/g;
+  const money = s => { const m = String(s).match(MONEY); return m ? m.map(x => x.replace(/^S?\$\s?/, '$')) : []; };
+  const yesNo = s => /\b(not\s+(covered|included|applicable)|no|nil|n\.?a\.?)\b/i.test(s) ? (/\bn\.?a\.?\b/i.test(s) ? 'NA' : 'No') : (/\b(yes|included|covered|applicable)\b/i.test(s) ? 'Yes' : null);
+  function detectInsurer(text){
+    const t = text.replace(/\s+/g, ' ');
+    const hits = BRAND.map(b => ({b, n:(t.match(new RegExp(b.re.source, 'gi')) || []).length})).filter(h => h.n).sort((a, c) => c.n - a.n);
+    if (!hits.length) return null;
+    return LIBRARY.find(l => brandFor(l.name) === hits[0].b.color) || null;
+  }
+  function parseQuote(lines){
+    const f = {}, L = lines.map(s => s.replace(/\s+/g, ' ').trim());
+    const after = (i) => L[i] + ' ' + (L[i+1] || '');           // value may sit on the next line in tables
+    const firstMoney = (i, own) => { const a = money(L[i]); if (a.length) return own ? a[a.length-1] : a[0]; const b = money(L[i+1]||''); return b[0]; };
+    L.forEach((s, i) => {
+      if (f.premium == null && /(total\s+)?premium|amount\s+payable|total\s+payable/i.test(s) && !/minimum|excess/i.test(s)){
+        const v = firstMoney(i, true); if (v) f.premium = v;
+      }
+      if (/total\s+(premium|payable)|amount\s+payable/i.test(s)){ const v = firstMoney(i, true); if (v) f.premium = v; }  // a total wins over a plain "premium"
+      if (f.od == null && /own\s*damage|section\s*(i|1)\b|sect\.?\s*(i|1)\b/i.test(s) && /excess/i.test(after(i))){ const v = firstMoney(i); if (v) f.od = v; }
+      if (f.windscreen == null && /windscreen/i.test(s)){ const v = firstMoney(i); if (v) f.windscreen = v; else { const y = yesNo(after(i)); if (y) f.windscreen = y; } }
+      if (/unnamed/i.test(s)){
+        const v = firstMoney(i);
+        if (/young|inexperienced|yeid|elderly/i.test(s)){ if (v && f.unnamedYeid == null) f.unnamedYeid = v; }
+        else if (v && f.unnamed == null) f.unnamed = v;
+      }
+      if (f.ncd == null && /ncd\s*(protector|protection)/i.test(s)){ const y = yesNo(after(i)); f.ncd = y || (money(after(i)).length ? 'Yes' : null); if (!f.ncd) delete f.ncd; }
+      if (f.waiver == null && /waiver\s+of\s+excess/i.test(s)){ const v = firstMoney(i); f.waiver = v || yesNo(after(i)); if (!f.waiver) delete f.waiver; }
+      if (f.towing == null && /towing/i.test(s)){ const v = firstMoney(i); if (v) f.towing = v; }
+      if (f.lou == null && /loss\s+of\s+use/i.test(s)){
+        const rest = s.replace(/.*loss\s+of\s+use(\s+benefit)?[:\s-]*/i, '').trim();
+        f.lou = rest || yesNo(L[i+1]||'') || null; if (!f.lou) delete f.lou;
+      }
+      if (f.plan == null && /any\s+workshop/i.test(s)) f.plan = 'Comprehensive Any Workshop Plan';
+      if (f.plan == null && /authori[sz]ed\s+workshop/i.test(s)) f.plan = AW;
+    });
+    return f;
+  }
+  async function pdfText(file, onStatus){
+    await loadScript(LIBS.pdf);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = LIBS.pdfWorker;
+    const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+    let lines = [];
+    for (let p = 1; p <= Math.min(pdf.numPages, 5); p++){
+      const page = await pdf.getPage(p), tc = await page.getTextContent();
+      // group text pieces into lines by their vertical position
+      const rows = {};
+      tc.items.forEach(it => { const y = Math.round(it.transform[5] / 3); (rows[y] = rows[y] || []).push(it); });
+      Object.keys(rows).map(Number).sort((a, b) => b - a).forEach(y => lines.push(rows[y].sort((a, b) => a.transform[4] - b.transform[4]).map(it => it.str).join(' ')));
+    }
+    if (lines.join('').replace(/\s/g, '').length > 40) return lines;
+    // scanned PDF: read the first pages as images
+    lines = [];
+    for (let p = 1; p <= Math.min(pdf.numPages, 3); p++){
+      const page = await pdf.getPage(p), vp = page.getViewport({scale: 2.2}), cv = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height; await page.render({canvasContext: cv.getContext('2d'), viewport: vp}).promise;
+      lines = lines.concat((await OCRPrices.readText(cv, onStatus)).lines);
+    }
+    return lines;
+  }
+  async function imageText(file, onStatus){
+    const url = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+    return (await OCRPrices.readText(url, onStatus)).lines;
+  }
+
+  // Ask which column a quote belongs to when the insurer can't be told from the text
+  function askInsurer(found){
+    return new Promise(resolve => {
+      const menu = $('m-ins-menu');
+      const opts = LIBRARY.map((l, k) => `<button type="button" class="ins-opt" data-pickins="${k}"><span class="dot" style="background:${brandFor(l.name)}"></span>${esc(l.name)}</button>`).join('');
+      menu.innerHTML = `<div class="ins-q">Which insurer is this quote from?</div>` + opts + `<button type="button" class="ins-opt" data-pickins="-1">Cancel</button>`;
+      menu.hidden = false;
+      const h = e => { const b = e.target.closest('[data-pickins]'); if (!b) return; menu.removeEventListener('click', h); menu.hidden = true; const k = +b.dataset.pickins; resolve(k >= 0 ? LIBRARY[k] : null); };
+      menu.addEventListener('click', h);
+    });
+  }
+
+  async function importFile(file){
+    const name = file.name || 'Pasted screenshot';
+    try{
+      if (/\.(xlsx|xlsm|xls|csv)$/i.test(name) || /sheet|excel|csv/i.test(file.type)){
+        say('Reading '+name+'…');
+        const done = importTable(await readSpreadsheet(file));
+        render();
+        if (!done) return say('Couldn’t find a comparison table in '+name+'. It needs insurer names across the top and row names down the left.', true);
+        return say('Filled from '+name+': '+done.join(', ')+'. Check the figures in the table.');
+      }
+      let lines;
+      if (/\.pdf$/i.test(name) || file.type === 'application/pdf'){ say('Reading '+name+'…'); lines = await pdfText(file, say); }
+      else if (/^image\//.test(file.type)){
+        if (!window.OCRPrices) return say('The text reader isn’t available here. Type the figures into the table.', true);
+        lines = await imageText(file, say);
+      }
+      else return say('That file type isn’t supported. Use a screenshot, PDF, Excel or CSV file.', true);
+      let lib = detectInsurer(lines.join('\n'));
+      const fields = parseQuote(lines);
+      if (!Object.keys(fields).length) return say('Couldn’t find premium or excess figures in '+name+'. Try a clearer screenshot of the quote’s summary, or type them in.', true);
+      if (!lib){ say('Found figures, but not the insurer’s name. Choose it from the list.'); lib = await askInsurer(fields); if (!lib) return say('Import cancelled.'); }
+      const res = applyFields(lib.name, fields);
+      render();
+      say('Read from the '+board.insurers[res.col].name+' quote: ' + res.wrote.map(k => FIELD_NAMES[k]+' '+String(fields[k]).replace(/\n/g, ' ')).join(' · ') + '. Check them against the quote.');
+    }catch(e){
+      say('Couldn’t read '+name+' ('+(e && (e.message || e.code) || 'unknown error')+'). Type the figures in instead.', true);
+    }
+  }
+  async function importFiles(files){ for (const f of files) await importFile(f); }
+
+  root.Motor = {init, emailHTML: () => emailHTML(), get board(){ return board; }, importFile, parseQuote, importTable, render: () => render()};
+})(this);
+</script>
 <script>/** @license
  *
  * jsPDF - PDF Document creation from JavaScript
@@ -876,7 +1480,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     plans.forEach(p => { p.originalMissing = p.original==null && !!p.oBox; delete p.oBox; });
     return plans;
   }
-  root.OCRPrices = {readPlans, readImage, parse};
+  // Plain text of an image (data URL or canvas), line by line — used to read motor quotes
+  async function readText(src, onStatus){
+    if (!root.Tesseract) throw {code:'ocr_unavailable'};
+    onStatus && onStatus('Loading the text reader (first time takes a few seconds)…');
+    const worker = await getWorker();
+    onStatus && onStatus('Reading the quote…');
+    const cv = typeof src === 'string' ? await prepare(src) : src;
+    const {data} = await worker.recognize(cv);
+    return {text: data.text || '', lines: (data.lines || []).map(l => (l.text||'').trim()).filter(Boolean)};
+  }
+  root.OCRPrices = {readPlans, readImage, readText, parse};
 })(this);
 </script>
 <script>// Quote maths + PDF drawing (three designs). Browser: window.Quote; Node: module.exports
@@ -1216,7 +1830,7 @@ function fillPropertyTypes(keep){
 function saveSlot(){ const s=slots[st.product]; s.attached=attached; s.plans=plans; s.chosen=chosen; s.price=$('price').value; s.original=$('original').value; s.planName=$('planName').value; s.promo=$('promoLabel').value; s.tripmsg=$('tripmsg').hidden?'':$('tripmsg').textContent; s.readmsg=$('readbar').hidden?'':$('readmsg').textContent; }
 function loadSlot(){ const s=slots[st.product]; attached=s.attached; plans=s.plans; chosen=s.chosen; $('price').value=s.price; $('original').value=s.original; $('planName').value=s.planName; $('promoLabel').value=s.promo;
   $('tripmsg').hidden=!s.tripmsg; $('tripmsg').textContent=s.tripmsg; $('readbar').hidden=!s.readmsg; $('readmsg').textContent=s.readmsg; renderThumbs(); }
-function setProduct(p){ if(p===st.product) return; saveSlot(); st.product=p; loadSlot(); update(); }
+function setProduct(p){ if(p===st.product) return; if(st.product!=='motor') saveSlot(); st.product=p; if(p!=='motor') loadSlot(); update(); }
 
 function pickPlan(i){
   chosen=i; const p=plans[i];
@@ -1258,8 +1872,10 @@ function fileTag(q){
 }
 
 function update(){
-  const home = st.product==='home';
-  $('pr-travel').setAttribute('aria-pressed', String(!home)); $('pr-home').setAttribute('aria-pressed', String(home));
+  const home = st.product==='home', motor = st.product==='motor';
+  ['travel','home','motor'].forEach(p=>$('pr-'+p).setAttribute('aria-pressed', String(st.product===p)));
+  $('f').hidden = motor; $('motor').hidden = !motor;
+  if(motor){ $('sec-title').textContent='Motor comparison'; return; }
   $('sec-title').textContent = home ? 'Home quote' : 'Travel quote';
   $('s1-hint').textContent = home
     ? 'Paste the Policy Information page to fill the property details, and the plans page to fill the prices. Plan pages are attached to the PDF.'
@@ -1396,6 +2012,7 @@ function loadImage(file){
   });
 }
 async function addFiles(files){
+  if(st.product==='motor') return;
   const imgs=[...files].filter(f=>f && f.type && f.type.startsWith('image/'));
   if(!imgs.length){ $('status').className='status err'; $('status').textContent='That isn’t an image. Attach a PNG or JPG screenshot.'; return; }
   if(!canRead && window.OCRPrices){
@@ -1464,6 +2081,7 @@ $('dl').onclick=async()=>{
 
 fillPropertyTypes('4 room Flat');
 update();
+Motor.init();
 (async()=>{
   const use = n => (window.claude && window.claude.use) ? window.claude.use(n).catch(()=>null) : Promise.resolve(null);
   const [d, smp] = await Promise.all([use('downloads'), use('sample')]);
