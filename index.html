@@ -1233,10 +1233,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const box = w => ({x0:w.bbox.x0, x1:w.bbox.x1, y0:w.bbox.y0, y1:w.bbox.y1, cx:(w.bbox.x0+w.bbox.x1)/2, h:w.bbox.y1-w.bbox.y0});
     // Plan headers: keep the top-most occurrence of each name
     const heads = {};
-    words.forEach(w => {
-      const m = (w.text||'').trim().match(PLAN_RE); if (!m) return;
-      const name = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
-      const b = box(w);
+    words.forEach((w, i) => {
+      const m = (w.text||'').trim().match(PLAN_RE);
+      let name = null, b = null;
+      if (m){ name = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase(); b = box(w); }
+      // Home plans are lengths of cover: "1 year", "3 years", "5 years"
+      const nx = words[i+1];
+      if (!m && /^\d{1,2}$/.test((w.text||'').trim()) && nx && /^years?$/i.test((nx.text||'').trim()) && Math.abs(nx.bbox.y0 - w.bbox.y0) < (w.bbox.y1-w.bbox.y0)){
+        const n = +w.text.trim(); name = n + (n === 1 ? ' year' : ' years');
+        b = box({bbox:{x0:w.bbox.x0, x1:nx.bbox.x1, y0:Math.min(w.bbox.y0,nx.bbox.y0), y1:Math.max(w.bbox.y1,nx.bbox.y1)}});
+      }
+      if (!name) return;
       if (!heads[name] || b.y0 < heads[name].y0) heads[name] = b;
     });
     const names = Object.keys(heads).sort((a,b)=>heads[a].cx-heads[b].cx);
@@ -1423,11 +1430,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     // Type of property: the words on the line just under its label, in the same column
     const lab = words.find((w,i) => /^type$/i.test(w.text) && /^of$/i.test((words[i+1]||{}).text||'') && /^property$/i.test((words[i+2]||{}).text||''));
     if (lab){
-      const L = lab.bbox, h = L.y1-L.y0, mid = cv.width*0.5;
-      const val = words.filter(w => w.bbox.y0 > L.y1 + h*0.2 && w.bbox.y0 < L.y1 + h*3.5 && w.bbox.x0 < mid && !/^for$/i.test(w.text) && !/^[vV]+$/.test(w.text))
+      const L = lab.bbox, h = L.y1-L.y0;
+      // the right-hand column starts at the next label to the right (e.g. "Type of house" / "Building coverage"); stay left of it
+      const rightLabels = words.filter(w => /^(type|building)$/i.test(w.text||'') && w.bbox.x0 > L.x1 + h*4).map(w => w.bbox.x0);
+      const mid = rightLabels.length ? Math.min(...rightLabels) - h : cv.width*0.5;
+      const val = words.filter(w => w.bbox.y0 > L.y1 + h*0.2 && w.bbox.y0 < L.y1 + h*3.5 && w.bbox.x1 < mid && !/^for$/i.test(w.text) && !/^[vV]+$/.test(w.text))
                        .sort((a,b)=>a.bbox.y0-b.bbox.y0 || a.bbox.x0-b.bbox.x0);
       if (val.length){
-        const rowY = val[0].bbox.y0, row = val.filter(w => Math.abs(w.bbox.y0-rowY) < h).sort((a,b)=>a.bbox.x0-b.bbox.x0).map(w=>w.text).join(' ');
+        const rowY = val[0].bbox.y0, row = val.filter(w => Math.abs(w.bbox.y0-rowY) < h*1.5).sort((a,b)=>a.bbox.x0-b.bbox.x0).map(w=>w.text).join(' ');
         const hit = PROPERTY_TYPES.find(t => norm(row).startsWith(norm(t))) || PROPERTY_TYPES.find(t => norm(row).includes(norm(t)));
         if (hit) out.propertyType = hit;
       }
@@ -1463,8 +1473,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     onStatus && onStatus('Reading the screenshot…');
     const cv = await prepare(dataUrl);
     const {data} = await worker.recognize(cv);
-    if (isHomeCoverPage(data.text||'')) return {kind:'homecover', cover: parseHomeCover(data)};
-    if (isHomePage(data.text||'')) return {kind:'home', home: parseHome(data, cv)};
+    const t = data.text || '';
+    const hasPlans = /\b\d{1,2}\s*years?\b[\s\S]*\$\s?\d/i.test(t) && /plan\s*details|select/i.test(t);
+    if (isHomePage(t) || isHomeCoverPage(t)){
+      return {kind:'homeall', home: isHomePage(t) ? parseHome(data, cv) : null, cover: isHomeCoverPage(t) ? parseHomeCover(data) : null,
+              plans: hasPlans ? await finishPlans(worker, cv, data) : [], plansOnly: false};
+    }
     if (isTripPage(data.text||'') && !/classic|deluxe|preferred/i.test(data.text||'')) return {kind:'trip', trip: parseTrip(data, cv)};
     const policy = /per-?trip\s*policy\s*plans/i.test(data.text||'') ? 'pertrip' : /yearly\s*policy\s*plans/i.test(data.text||'') ? 'yearly' : null;
     return {kind:'plans', policy, plans: await finishPlans(worker, cv, data)};
@@ -1490,8 +1504,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
     // Plans on one tab share the same discount: work out missing old prices from a plan that read cleanly
     const known = plans.filter(p => p.original!=null);
-    if (known.length){
-      const ratio = known.reduce((s,p)=>s + p.price/p.original, 0) / known.length;
+    const ratios = known.map(p => p.price/p.original);
+    const shared = ratios.length && Math.max(...ratios) - Math.min(...ratios) < 0.02;   // e.g. Travel: every plan 25% off
+    if (shared){
+      const ratio = ratios.reduce((s,r)=>s+r, 0) / ratios.length;
       plans.forEach(p => {
         if (p.original==null && p.oBox && p.price!=null){
           p.original = Math.round(p.price/ratio*100)/100; p.inferred = true;
@@ -1528,7 +1544,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const n = (q.product==='home' || q.family) ? 1 : q.adults;
     const orig = q.original || q.price;
     const lines = q.product==='home'
-      ? [{label:'Annual premium', amt:r2(orig)}]
+      ? [{label: (q.years||1) > 1 ? 'Premium ('+q.years+' years)' : 'Annual premium', amt:r2(orig)}]
       : [{label: q.family ? 'Family' : q.adults + (q.adults===1?' Adult':' Adults'), amt:r2(n*orig)}];
     const sub = lines[0].amt;
     const total = r2(n*q.price);
@@ -1536,7 +1552,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const start = parseISO(q.start);
     let end, note;
     if (q.product==='home'){
-      end = new Date(start.getFullYear()+1, start.getMonth(), start.getDate()-1);
+      end = new Date(start.getFullYear()+(q.years||1), start.getMonth(), start.getDate()-1);   // 1, 3 or 5-year plans
       note = null;
     } else if (q.yearly){
       end = new Date(start.getFullYear()+1, start.getMonth(), start.getDate()-1);
@@ -1916,6 +1932,7 @@ function renderPlans(){
 function quote(){
   const base = {name:$('name').value.trim(), plan:$('planName').value.trim(), price:num($('price').value), original:num($('original').value), promoLabel:$('promoLabel').value};
   if(st.product==='home') return {...base, product:'home', ownership:hs.ownership, houseType:hs.house, propertyType:$('ptype').value,
+    years: (()=>{ const m=$('planName').value.match(/(\d{1,2})\s*-?\s*year/i); return m ? +m[1] : 1; })(),
     building: hs.building==='na' ? null : hs.building==='yes', start:$('hstart').value, renovation:fmtSum($('hreno').value), contents:fmtSum($('hcontents').value)};
   return {...base, product:'travel', yearly:st.yearly, family:st.family, adults:st.adults, children:st.children, region:$('region').value, start:$('start').value, end:$('end').value};
 }
@@ -1996,7 +2013,7 @@ function showPlans(found){
   const sel = plans.findIndex(p=>p.selected);
   const miss = plans.filter(p=>p.originalMissing).map(p=>p.name), inf = plans.filter(p=>p.inferred).map(p=>p.name);
   $('readmsg').textContent='Read '+plans.length+' plan'+(plans.length===1?'':'s')+'. Check the amounts match the screenshot.'
-    + (miss.length ? ' Couldn’t read the crossed-out price for '+miss.join(', ')+', so type it into “Price before promotion”.' : '')
+    + (miss.length ? ' No crossed-out price found for '+miss.join(', ')+'. If there is one, type it into “Price before promotion”.' : '')
     + (inf.length ? ' The crossed-out price for '+inf.join(', ')+' was worked out from the same discount as the other plans, so double-check it.' : '');
   pickPlan(sel>=0 ? sel : 0);
 }
@@ -2096,8 +2113,15 @@ async function addFiles(files){
       try{ r=await OCRPrices.readImage(im.dataUrl, m=>{ $('readmsg').textContent=m; }); }catch(e){}
       $('reread').disabled=false;
       if(r && r.kind==='trip'){ applyTrip(r.trip); $('readbar').hidden = !attached.length; continue; }
-      if(r && r.kind==='home'){ applyHome(r.home); $('readbar').hidden = !attached.length; continue; }
-      if(r && r.kind==='homecover'){ applyHomeCover(r.cover); $('readbar').hidden = !attached.length; continue; }
+      if(r && r.kind==='homeall'){
+        // Home page screenshot: fill the details and coverage; read its plan prices but don't attach it (it shows the customer's details)
+        const msgs=[];
+        if(r.home){ applyHome(r.home); msgs.push($('tripmsg').textContent.replace(/^Filled from your Policy Information screenshot: |\. Check it matches\.$/g,'')); }
+        if(r.cover){ applyHomeCover(r.cover); msgs.push($('tripmsg').textContent.replace(/^Filled from your Policy plans screenshot: |\. Check it matches\.$/g,'')); }
+        note(msgs.length ? 'Filled from your screenshot: '+msgs.join(' · ')+'. Check it matches.' : 'Couldn’t read the details from that screenshot. Set them in Step 2.');
+        if(r.plans && r.plans.length){ $('readbar').hidden=false; showPlans(r.plans); } else { $('readbar').hidden = !attached.length; }
+        continue;
+      }
       attached.push(im); renderThumbs();
       if(r && r.policy && st.product==='travel'){ st.yearly = r.policy==='yearly'; }
       if(r) showPlans(r.plans||[]); else { $('readmsg').textContent='Couldn’t read the screenshot here. Type the plan’s prices into Step 2.'; update(); }
