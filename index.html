@@ -1738,7 +1738,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     ['li', 'It would cost $100,000 to replace everything in your home.'],
     ['li', 'You choose $50,000 of cover, so you’ve insured half the value.'],
     ['li', 'A fire damages your sofa and TV. They cost $4,000 to replace.'],
-    ['p',  'Even though the damage is below your $50,000 limit, the insurer only pays half, because you insured only half the value. The insurer would pay $2,000, and you would pay the other $2,000.'],
+    ['p',  'Even though the damage is below your $50,000 limit, the insurer only pays half, because you insured only half the value. The insurer would pay $2,000, and **you would pay the other $2,000.**'],
   ];
   const FAMILY_CLAUSE = 'Covers all children under 21 who are the adult’s biological or legally adopted children, or are under the adult’s legal guardianship.';
   function drawHighlight(doc, q, c, top, today, opts){
@@ -1836,7 +1836,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
     const clauseBox = (title, blocks) => {
       const inner = R - L - 24, LH = 11.5;
-      const bl = blocks.map(([kind, text]) => ({kind, lines: wrap(text, 8.5, kind==='li' ? inner-12 : inner)}));
+      // **text** marks bold words inside a paragraph
+      const rich = (text, w) => {
+        const words = []; String(text).split('**').forEach((seg, i) => seg.split(/\s+/).filter(Boolean).forEach(s => words.push({s, b: i % 2 === 1})));
+        const out = []; let cur = [], cw = 0;
+        const width = wd => { doc.setFont('helvetica', wd.b ? 'bold' : 'normal'); doc.setFontSize(8.5); return doc.getTextWidth(wd.s); };
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); const sp = doc.getTextWidth(' ');
+        words.forEach(wd => { const ww = width(wd); if (cur.length && cw + sp + ww > w){ out.push(cur); cur = []; cw = 0; } cw += (cur.length ? sp : 0) + ww; cur.push(wd); });
+        if (cur.length) out.push(cur);
+        return out;
+      };
+      const bl = blocks.map(([kind, text]) => /\*\*/.test(text) ? {kind, rich: true, lines: rich(text, kind==='li' ? inner-12 : inner)} : {kind, lines: wrap(text, 8.5, kind==='li' ? inner-12 : inner)});
       const bodyH = bl.reduce((s, b, i) => s + b.lines.length*LH + (i ? (b.kind==='li' && bl[i-1].kind==='li' ? 1 : 5) : 0), 0);
       const h = 30 + bodyH;
       room(h);
@@ -1845,7 +1855,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       let by = y + 29;
       bl.forEach((b, i) => {
         if (i) by += (b.kind==='li' && bl[i-1].kind==='li') ? 1 : 5;
-        if (b.kind==='li'){ t('•', L+14, by, {size:8.5, bold:true, color:C.orangeDeep}); t(b.lines, L+24, by, {size:8.5, color:C.fg}); }
+        if (b.rich){
+          b.lines.forEach((ln, k) => { let x = L+12;
+            doc.setFont('helvetica','normal'); doc.setFontSize(8.5); const sp = doc.getTextWidth(' ');
+            ln.forEach(wd => { t(wd.s, x, by + k*LH, {size:8.5, bold:wd.b, color:C.fg}); doc.setFont('helvetica', wd.b?'bold':'normal'); doc.setFontSize(8.5); x += doc.getTextWidth(wd.s) + sp; }); });
+        } else if (b.kind==='li'){ t('•', L+14, by, {size:8.5, bold:true, color:C.orangeDeep}); t(b.lines, L+24, by, {size:8.5, color:C.fg}); }
         else t(b.lines, L+12, by, {size:8.5, color:C.fg, bold: b.lines.length===1 && /:$/.test(b.lines[0])});
         by += b.lines.length*LH;
       });
