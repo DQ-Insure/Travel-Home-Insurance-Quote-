@@ -1457,8 +1457,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       const m = words.filter(w => /\$?\d[\d,]*(\.\d{2})?/.test(w.text||'') && /\d{3}/.test((w.text||'').replace(/,/g,''))
                               && w.bbox.y0 > L.y1 && w.bbox.y0 < L.y1 + h*4 && w.bbox.x0 > L.x0 - h*6 && w.bbox.x0 < L.x0 + h*12)
                      .sort((a,b) => a.bbox.y0 - b.bbox.y0)[0];
-      if (!m) return null;
-      const n = parseFloat(m.text.replace(/[^\d.]/g,'')); return isNaN(n) ? null : '$' + n.toLocaleString('en-SG', {maximumFractionDigits:2});
+      // the plans table puts the amount on the same row, to the right of the label
+      const side = m ? null : words.filter(w => /\d{3}/.test((w.text||'').replace(/,/g,'')) && /^\$?\d[\d,]*(\.\d{2})?$/.test(w.text||'')
+                              && Math.abs((w.bbox.y0+w.bbox.y1)/2 - (L.y0+L.y1)/2) < h && w.bbox.x0 > L.x1).sort((a,b) => a.bbox.x0 - b.bbox.x0)[0];
+      const hit = m || side;
+      if (!hit) return null;
+      const n = parseFloat(hit.text.replace(/[^\d.]/g,'')); return isNaN(n) ? null : '$' + n.toLocaleString('en-SG', {maximumFractionDigits:2});
     };
     const r = amountBelow(/^renovation$/i); if (r) out.renovation = r;
     const c = amountBelow(/^contents$/i); if (c) out.contents = c;
@@ -2114,11 +2118,13 @@ async function addFiles(files){
       $('reread').disabled=false;
       if(r && r.kind==='trip'){ applyTrip(r.trip); $('readbar').hidden = !attached.length; continue; }
       if(r && r.kind==='homeall'){
-        // Home page screenshot: fill the details and coverage; read its plan prices but don't attach it (it shows the customer's details)
+        // Home page screenshot: fill the details and coverage, and read the plan prices
         const msgs=[];
         if(r.home){ applyHome(r.home); msgs.push($('tripmsg').textContent.replace(/^Filled from your Policy Information screenshot: |\. Check it matches\.$/g,'')); }
         if(r.cover){ applyHomeCover(r.cover); msgs.push($('tripmsg').textContent.replace(/^Filled from your Policy plans screenshot: |\. Check it matches\.$/g,'')); }
         note(msgs.length ? 'Filled from your screenshot: '+msgs.join(' · ')+'. Check it matches.' : 'Couldn’t read the details from that screenshot. Set them in Step 2.');
+        // a plans-only screenshot (no customer details) goes into the PDF as the benefits page, like Travel's
+        if(!r.home && r.plans && r.plans.length){ attached.push(im); renderThumbs(); }
         if(r.plans && r.plans.length){ $('readbar').hidden=false; showPlans(r.plans); } else { $('readbar').hidden = !attached.length; }
         continue;
       }
