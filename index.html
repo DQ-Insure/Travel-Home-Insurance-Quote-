@@ -207,6 +207,11 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
         <div class="field"><label class="lbl" for="planName">Plan name on the quote</label><input type="text" id="planName" placeholder="e.g. Classic"></div>
         <div class="field"><label class="lbl" for="promoLabel">Promotion wording</label><input type="text" id="promoLabel"></div>
       </div>
+      <div class="grid2" id="hparts" hidden>
+        <div class="field"><label class="lbl" for="hpremReno">Renovation Coverage premium ($)</label><input type="number" id="hpremReno" min="0" step="0.01" placeholder="e.g. 14.98"></div>
+        <div class="field"><label class="lbl" for="hpremContents">Home Contents Coverage premium ($)</label><input type="number" id="hpremContents" min="0" step="0.01" placeholder="e.g. 56.24"></div>
+      </div>
+      <p class="hint" id="hparts-hint" hidden>Premium breakdown from Income's cart. Paste the Cart summary screenshot to fill these in, or leave blank to show one premium line.</p>
     </section>
 
     <section class="step total" aria-labelledby="s3" aria-live="polite">
@@ -1469,6 +1474,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return out;
   }
 
+  // Income's cart summary: Renovation / Home Contents premiums, total, plan and years
+  function parseCart(data){
+    const lines = (data.lines||[]).map(l => (l.text||'').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const amt = s => { const m = String(s).match(/\$\s?([\d,]+\.\d{2})/); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
+    const find = re => { for (let i=0;i<lines.length;i++) if (re.test(lines[i])){ const a = amt(lines[i].replace(re,'')); if (a!=null) return a; if (i+1<lines.length && !/[a-z]{4}/i.test(lines[i+1].replace(/\$[\d,.\s]+/,''))) return amt(lines[i+1]); } return null; };
+    const out = {renovation: find(/renovation\s*coverage/i), contents: find(/home\s*contents\s*coverage/i), total: find(/total\s*amount/i)};
+    const plan = lines.find(l => /home\s*insurance/i.test(l) && !/\$/.test(l));
+    if (plan) out.plan = plan.replace(/[^A-Za-z ]/g,'').replace(/\s+/g,' ').trim();
+    const y = (data.text||'').match(/\b(\d{1,2})\s*years?\b/i); if (y) out.years = +y[1];
+    return out;
+  }
+
   // Read any pasted screenshot: tells a Travel information page from a plans table
   async function readImage(dataUrl, onStatus){
     if (!root.Tesseract) throw {code:'ocr_unavailable'};
@@ -1478,6 +1495,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const cv = await prepare(dataUrl);
     const {data} = await worker.recognize(cv);
     const t = data.text || '';
+    if (/cart\s*summary|total\s*amount/i.test(t) && /renovation\s*coverage|home\s*contents\s*coverage/i.test(t)) return {kind:'cart', cart: parseCart(data)};
     const hasPlans = /\b\d{1,2}\s*years?\b[\s\S]*\$\s?\d/i.test(t) && /plan\s*details|select/i.test(t);
     if (isHomePage(t) || isHomeCoverPage(t)){
       return {kind:'homeall', home: isHomePage(t) ? parseHome(data, cv) : null, cover: isHomeCoverPage(t) ? parseHomeCover(data) : null,
@@ -1547,12 +1565,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function compute(q){
     const n = (q.product==='home' || q.family) ? 1 : q.adults;
     const orig = q.original || q.price;
-    const lines = q.product==='home'
-      ? [{label: (q.years||1) > 1 ? 'Premium ('+q.years+' years)' : 'Annual premium', amt:r2(orig)}]
-      : [{label: q.family ? 'Family' : q.adults + (q.adults===1?' Adult':' Adults'), amt:r2(n*orig)}];
-    const sub = lines[0].amt;
+    const parts = (q.parts||[]).filter(p => p && p.amt!=null && !isNaN(p.amt));
+    const lines = parts.length ? parts.map(p => ({label:p.label, amt:r2(p.amt)}))          // itemised, as in Income's cart
+      : q.product==='home'
+        ? [{label: (q.years||1) > 1 ? 'Premium ('+q.years+' years)' : 'Annual premium', amt:r2(orig)}]
+        : [{label: q.family ? 'Family' : q.adults + (q.adults===1?' Adult':' Adults'), amt:r2(n*orig)}];
+    const sub = r2(lines.reduce((s,l)=>s+l.amt, 0));
     const total = r2(n*q.price);
     const disc = r2(Math.max(0, sub-total));
+    const was = r2(n*orig), save = r2(Math.max(0, was-total));   // for the total panel
     const start = parseISO(q.start);
     let end, note;
     if (q.product==='home'){
@@ -1566,7 +1587,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       const days = Math.round((end-start)/86400000)+1;
       note = 'Your per-trip policy covers this trip for ' + days + ' calendar day' + (days===1?'':'s') + '.';
     }
-    return {lines, sub, disc, total:r2(sub-disc), startStr:fmtDate(start), endStr:fmtDate(end), note};
+    return {lines, sub, disc, total, was, save, startStr:fmtDate(start), endStr:fmtDate(end), note};
   }
 
   const PW = 595.28, PH = 841.89;            // A4 in points
@@ -1723,44 +1744,51 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function drawHighlight(doc, q, c, top, today, opts){
     const {t, box, line, wrap} = kit(doc);
     const C = {navy:'#14234B', fg:'#1F2633', muted:'#667085', border:'#D6DEE8', panel:'#EEF3F9', orange:'#EF7D1A', orangeDeep:'#C85F06', soft:'#FFF4EA', softLine:'#F6C79A', white:'#FFFFFF', promo:'#0E8A85'};
-    const L = 40, R = PW-40, G = 12;
-    const pw = 214, px = R-pw, py = top-6, ph = c.disc > 0 ? 116 : 84;
+    const L = 40, R = PW-40, G = 10, BOTTOM = PH - 36;
+    const home = q.product==='home', yrs = q.years || 1;
+    const forLine = home ? 'for ' + yrs + (yrs===1 ? ' year' : ' years') : null;
+    const pw = 214, px = R-pw, py = top-6;
+    const ph = 64 + (c.save > 0 ? 34 : 0);
     // Left: document title, vertically centred against the panel
     const hasFont = useTitleFont(doc, opts.titleFont);
-    const TS = 28;
+    const TS = 23;
     doc.setFont(hasFont ? 'TitleFont' : 'helvetica', hasFont ? 'normal' : 'bold'); doc.setFontSize(TS);
-    const home = q.product==='home';
     const titleLines = doc.splitTextToSize(home ? 'Income Home Insurance Quote' : 'Income Travel Insurance Quote', px-L-20);
     const blockH = titleLines.length*TS*1.2;
-    const ty0 = py + Math.max(0, (ph-blockH)/2);
     doc.setTextColor(C.orange);
-    doc.text(titleLines, L, ty0+TS*0.85, {lineHeightFactor:1.2});
+    doc.text(titleLines, L, py + Math.max(0, (ph-blockH)/2) + TS*0.85, {lineHeightFactor:1.2});
     // Right: total panel
     box(px, py, pw, ph, {fill:C.orange, r:8});
-    t('TOTAL PREMIUM', px+18, py+24, {size:8.5, bold:true, color:C.white, charSpace:0.8});
-    t(money(c.total), px+18, py+60, {size:32, bold:true, color:C.white});
-    if (c.disc > 0){
-      // Was-price struck through, then a white savings badge
-      t('Was ' + money(c.sub), px+18, py+80, {size:10, color:C.white});
-      doc.setFont('helvetica','normal'); doc.setFontSize(10);
-      const ww = doc.getTextWidth(money(c.sub)), wx = px+18+doc.getTextWidth('Was ');
-      doc.setDrawColor(C.white); doc.setLineWidth(1); doc.line(wx, py+76.5, wx+ww, py+76.5);
-      const pct = Math.round(c.disc/c.sub*100);
-      const badge = 'YOU SAVE ' + money(c.disc) + '  (' + pct + '% OFF)';
-      doc.setFont('helvetica','bold'); doc.setFontSize(10);
-      const bw = doc.getTextWidth(badge) + 20;
-      box(px+14, py+88, Math.min(bw, pw-28), 20, {fill:C.white, r:10});
-      t(badge, px+24, py+101.5, {size:10, bold:true, color:C.orangeDeep});
+    t('TOTAL PREMIUM WITH GST', px+16, py+21, {size:7.5, bold:true, color:C.white, charSpace:0.7});
+    t(money(c.total), px+16, py+50, {size:26, bold:true, color:C.white});
+    let pyy = py + 50;
+    if (home){   // plan length beside the price: "$71.22 / 1 year"
+      doc.setFont('helvetica','bold'); doc.setFontSize(26);
+      t('/ ' + yrs + (yrs===1 ? ' year' : ' years'), px+16 + doc.getTextWidth(money(c.total)) + 5, pyy, {size:11, bold:true, color:C.white});
     }
-    let y = py + ph + 34;
-    // Insured name sits right above the trip details
-    t('Insured Name:', L, y, {size:12, color:C.muted});
-    doc.setFont('helvetica','normal'); doc.setFontSize(12);
-    t(q.name, L + doc.getTextWidth('Insured Name: '), y, {size:12, bold:true, color:C.navy, maxWidth:R-L-90});
-    y += 26;
-    t(home ? 'Property details' : 'Trip details', L, y, {size:13, bold:true, color:C.navy});
-    y += 12;
-    const tw = (R-L-2*G)/3, th = 56;
+    if (c.save > 0){
+      // Was-price struck through, then a white savings badge
+      pyy += 15;
+      t('Was ' + money(c.was), px+16, pyy, {size:9, color:C.white});
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      const ww = doc.getTextWidth(money(c.was)), wx = px+16+doc.getTextWidth('Was ');
+      doc.setDrawColor(C.white); doc.setLineWidth(0.9); doc.line(wx, pyy-3.2, wx+ww, pyy-3.2);
+      const badge = 'YOU SAVE ' + money(c.save) + '  (' + Math.round(c.save/c.was*100) + '% OFF)';
+      doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      const bw = doc.getTextWidth(badge) + 18;
+      box(px+12, pyy+6, Math.min(bw, pw-24), 18, {fill:C.white, r:9});
+      t(badge, px+21, pyy+18.3, {size:9, bold:true, color:C.orangeDeep});
+    }
+    let y = py + ph + 28;
+    const room = h => { if (y + h > BOTTOM){ doc.addPage('a4'); y = header(doc, opts.headerImg); } };
+    // Insured name sits right above the details
+    t('Insured Name:', L, y, {size:10.5, color:C.muted});
+    doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+    t(q.name, L + doc.getTextWidth('Insured Name: '), y, {size:10.5, bold:true, color:C.navy, maxWidth:R-L-90});
+    y += 22;
+    t(home ? 'Property details' : 'Trip details', L, y, {size:11.5, bold:true, color:C.navy});
+    y += 10;
+    const tw = (R-L-2*G)/3, th = 46;
     // Detail boxes flow three to a row; a box that doesn't fit starts a new row and the box before it stretches to fill
     const period = ['Coverage period', c.startStr + '  –  ' + c.endStr, 2];
     const items = home ? [
@@ -1776,9 +1804,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     ];
     const placed = []; let col = 0, row = 0;
     const highlights = items.filter(it => it[3]);            // sums insured: their own row, side by side
-    items.filter(it => !it[3]).forEach(([k, v, span, hi]) => {
+    items.filter(it => !it[3]).forEach(([k, v, span]) => {
       if (col + span > 3){ if (placed.length && placed[placed.length-1].row === row) placed[placed.length-1].span += 3 - col; row++; col = 0; }
-      placed.push({col, row, span, k, v, hi}); col += span;
+      placed.push({col, row, span, k, v}); col += span;
       if (col >= 3){ row++; col = 0; }
     });
     if (col > 0 && placed.length) placed[placed.length-1].span += 3 - col;   // stretch the last box to the edge
@@ -1793,55 +1821,53 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       const x = p.x != null ? p.x : L + p.col*(tw+G), w = p.w != null ? p.w : tw*p.span + G*(p.span-1);
       // sums insured get a pastel yellow highlight
       box(x, ty, w, th, hi ? {fill:'#FFF6D6', stroke:'#F0D480', r:6} : {stroke:C.border, r:6});
-      t(k, x+14, ty+21, {size:9, color: hi ? '#7A5C00' : C.muted});
-      t(v, x+14, ty+41, {size:13, bold:true, color:C.fg});
+      t(k, x+12, ty+17, {size:8, color: hi ? '#7A5C00' : C.muted});
+      t(v, x+12, ty+34, {size:11, bold:true, color:C.fg});
     });
-    y += tileRows*th + (tileRows-1)*G + 12;
-    // Notes: coverage note, and the family clause for family plans
+    y += tileRows*th + (tileRows-1)*G + 10;
+    // Notes and clauses
     if (c.note){
-      const noteLines = wrap(c.note, 9, R-L-28);
-      const nh = 16 + noteLines.length*12;
+      const noteLines = wrap(c.note, 8.5, R-L-24);
+      const nh = 14 + noteLines.length*11;
+      room(nh);
       box(L, y, R-L, nh, {fill:C.panel, r:6});
-      t(noteLines, L+14, y+18, {size:9, color:C.navy});
-      y += nh + 10;
+      t(noteLines, L+12, y+16, {size:8.5, color:C.navy});
+      y += nh + 8;
     }
-    if (home && (q.renovation || q.contents)){
-      const inner = R - L - 28, blocks = UNDERINSURANCE_CLAUSE.map(([kind, text]) => ({kind, lines: wrap(text, 9.5, kind==='li' ? inner-14 : inner)}));
-      const bodyH = blocks.reduce((s, b, i) => s + b.lines.length*13 + (i ? (b.kind==='li' && blocks[i-1].kind==='li' ? 2 : 6) : 0), 0);
-      const uh = 34 + bodyH;
-      if (y + uh > 800){ doc.addPage('a4'); y = header(doc, opts.headerImg); }
-      box(L, y, R-L, uh, {fill:C.soft, stroke:C.softLine, r:6, lw:0.6});
-      t('UNDERINSURANCE', L+14, y+18, {size:8.5, bold:true, color:C.orangeDeep, charSpace:0.8});
-      let by = y + 33;
-      blocks.forEach((b, i) => {
-        if (i) by += (b.kind==='li' && blocks[i-1].kind==='li') ? 2 : 6;
-        if (b.kind==='li'){ t('•', L+16, by, {size:9.5, bold:true, color:C.orangeDeep}); t(b.lines, L+28, by, {size:9.5, color:C.fg}); }
-        else t(b.lines, L+14, by, {size:9.5, color:C.fg, bold: b.lines.length===1 && /:$/.test(b.lines[0])});
-        by += b.lines.length*13;
+    const clauseBox = (title, blocks) => {
+      const inner = R - L - 24, LH = 11.5;
+      const bl = blocks.map(([kind, text]) => ({kind, lines: wrap(text, 8.5, kind==='li' ? inner-12 : inner)}));
+      const bodyH = bl.reduce((s, b, i) => s + b.lines.length*LH + (i ? (b.kind==='li' && bl[i-1].kind==='li' ? 1 : 5) : 0), 0);
+      const h = 30 + bodyH;
+      room(h);
+      box(L, y, R-L, h, {fill:C.soft, stroke:C.softLine, r:6, lw:0.6});
+      t(title, L+12, y+16, {size:7.5, bold:true, color:C.orangeDeep, charSpace:0.7});
+      let by = y + 29;
+      bl.forEach((b, i) => {
+        if (i) by += (b.kind==='li' && bl[i-1].kind==='li') ? 1 : 5;
+        if (b.kind==='li'){ t('•', L+14, by, {size:8.5, bold:true, color:C.orangeDeep}); t(b.lines, L+24, by, {size:8.5, color:C.fg}); }
+        else t(b.lines, L+12, by, {size:8.5, color:C.fg, bold: b.lines.length===1 && /:$/.test(b.lines[0])});
+        by += b.lines.length*LH;
       });
-      y += uh + 10;
-    }
-    if (q.family && !home){
-      const cl = wrap(FAMILY_CLAUSE, 9.5, R-L-28);
-      const ch = 34 + cl.length*13;
-      box(L, y, R-L, ch, {fill:C.soft, stroke:C.softLine, r:6, lw:0.6});
-      t('FAMILY COVERAGE', L+14, y+18, {size:8.5, bold:true, color:C.orangeDeep, charSpace:0.8});
-      t(cl, L+14, y+33, {size:9.5, color:C.fg});
-      y += ch + 10;
-    }
-    y += 22;
+      y += h + 8;
+    };
+    if (home && (q.renovation || q.contents)) clauseBox('UNDERINSURANCE', UNDERINSURANCE_CLAUSE);
+    if (q.family && !home) clauseBox('FAMILY COVERAGE', [['p', FAMILY_CLAUSE]]);
     // Premium breakdown
-    t('Premium breakdown', L, y, {size:13, bold:true, color:C.navy});
-    y += 12;
     const rows = c.lines.map(l=>[l.label, money(l.amt), C.fg, C.fg]);
     rows.push(['Sub total', money(c.sub), C.fg, C.fg]);
     if (c.disc > 0) rows.push(['Promotion' + (q.promoLabel ? ' · ' + q.promoLabel : ''), '-'+money(c.disc), C.promo, C.promo]);
-    let ry = y + 22;
-    t(q.plan, L+16, ry, {size:10.5, bold:true, color:C.navy});
-    rows.forEach(([k,v,kc,vc]) => { ry += 26; t(k, L+16, ry, {size:10.5, color:kc}); t(v, R-16, ry, {size:10.5, bold:true, color:vc, align:'right'}); });
-    ry += 14; line(L+16, ry, R-16, ry, C.border);
-    ry += 24; t('Total amount', L+16, ry, {size:12, bold:true, color:C.navy}); t(money(c.total), R-16, ry, {size:13, bold:true, color:C.navy, align:'right'});
-    box(L, y, R-L, ry+16-y, {stroke:C.border, r:6});
+    const bh = 18 + 20 + rows.length*21 + 12 + 22 + 12;
+    y += 14; room(bh + 20);
+    t('Premium breakdown', L, y, {size:11.5, bold:true, color:C.navy});
+    y += 10;
+    let ry = y + 19;
+    t(q.plan, L+14, ry, {size:9.5, bold:true, color:C.navy});
+    if (forLine && !/year/i.test(q.plan)){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); t('· ' + forLine, L+14 + doc.getTextWidth(q.plan + ' '), ry, {size:9.5, color:C.muted}); }
+    rows.forEach(([k,v,kc,vc]) => { ry += 21; t(k, L+14, ry, {size:9.5, color:kc}); t(v, R-14, ry, {size:9.5, bold:true, color:vc, align:'right'}); });
+    ry += 12; line(L+14, ry, R-14, ry, C.border);
+    ry += 20; t('Total amount (incl. GST)', L+14, ry, {size:10.5, bold:true, color:C.navy}); t(money(c.total), R-14, ry, {size:11.5, bold:true, color:C.navy, align:'right'});
+    box(L, y, R-L, ry+14-y, {stroke:C.border, r:6});
   }
 
   const DESIGNS = {classic:drawClassic, statement:drawStatement, highlight:drawHighlight};
@@ -1937,7 +1963,8 @@ function quote(){
   const base = {name:$('name').value.trim(), plan:$('planName').value.trim(), price:num($('price').value), original:num($('original').value), promoLabel:$('promoLabel').value};
   if(st.product==='home') return {...base, product:'home', ownership:hs.ownership, houseType:hs.house, propertyType:$('ptype').value,
     years: (()=>{ const m=$('planName').value.match(/(\d{1,2})\s*-?\s*year/i); return m ? +m[1] : 1; })(),
-    building: hs.building==='na' ? null : hs.building==='yes', start:$('hstart').value, renovation:fmtSum($('hreno').value), contents:fmtSum($('hcontents').value)};
+    building: hs.building==='na' ? null : hs.building==='yes', start:$('hstart').value, renovation:fmtSum($('hreno').value), contents:fmtSum($('hcontents').value),
+    parts:[['Renovation Coverage',num($('hpremReno').value)],['Home Contents Coverage',num($('hpremContents').value)]].filter(p=>p[1]!==null).map(([label,amt])=>({label,amt}))};
   return {...base, product:'travel', yearly:st.yearly, family:st.family, adults:st.adults, children:st.children, region:$('region').value, start:$('start').value, end:$('end').value};
 }
 function problem(q){
@@ -1948,6 +1975,7 @@ function problem(q){
   if(q.price===null) return attached.length ? 'Pick a plan, or type the premium.' : 'Paste the plans screenshot, or type the premium.';
   if(q.original!==null && q.original < q.price) return 'The price before promotion is lower than the premium. Check the two amounts.';
   if(!q.plan) return 'Enter the plan name.';
+  if(q.parts && q.parts.length){ const s=Math.round(q.parts.reduce((a,p)=>a+p.amt,0)*100)/100; if(Math.abs(s-q.price)>0.01) return 'The premium breakdown adds up to $'+s.toFixed(2)+', but the premium is $'+q.price.toFixed(2)+'. Check the amounts.'; }
   return '';
 }
 function fileTag(q){
@@ -1965,7 +1993,7 @@ function update(){
   $('s1-hint').textContent = home
     ? 'Paste the Policy Information page to fill the property details, the Policy plans page to fill the coverage amounts, and the plans page to fill the prices. Plan pages are attached to the PDF.'
     : 'Paste the Travel information page to fill the trip details, and the plans table to fill the prices. The plans table is attached to the PDF.';
-  $('travel-fields').hidden = home; $('home-fields').hidden = !home;
+  $('travel-fields').hidden = home; $('home-fields').hidden = !home; $('hparts').hidden = !home; $('hparts-hint').hidden = !home;
   for (const k of ['adults','children']) st[k]=Math.min(LIMITS[k][1],Math.max(LIMITS[k][0],st[k]));
   document.querySelectorAll('[data-group]').forEach(g=>{const k=g.dataset.group; g.querySelectorAll('.pill').forEach(b=>b.setAttribute('aria-pressed', String((b.dataset.v==='1')===st[k])));});
   document.querySelectorAll('[data-hgroup]').forEach(g=>{const k=g.dataset.hgroup; g.querySelectorAll('.pill').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===hs[k])));});
@@ -1996,7 +2024,7 @@ document.querySelectorAll('.product').forEach(b=>b.addEventListener('click',()=>
 document.querySelectorAll('[data-group]').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.pill'); if(!b) return; st[g.dataset.group]=b.dataset.v==='1'; update();}));
 document.querySelectorAll('[data-hgroup]').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.pill'); if(!b) return; const k=g.dataset.hgroup; hs[k]=b.dataset.v; if(k==='house') fillPropertyTypes(); update();}));
 document.querySelectorAll('.stepper').forEach(s=>s.addEventListener('click',e=>{const b=e.target.closest('button'); if(!b||b.disabled) return; st[s.dataset.key]+= +b.dataset.d; update();}));
-['name','region','start','end','price','original','planName','promoLabel','ptype','hstart','hreno','hcontents'].forEach(id=>$(id).addEventListener('input',update));
+['name','region','start','end','price','original','planName','promoLabel','ptype','hstart','hreno','hcontents','hpremReno','hpremContents'].forEach(id=>$(id).addEventListener('input',update));
 $('f').addEventListener('submit',e=>e.preventDefault());
 
 // ---- Reading screenshots with Claude (inside Claude only) ----
@@ -2070,6 +2098,16 @@ function applyTrip(t){
   note(got.length ? 'Filled from your Travel information screenshot: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the trip details from that screenshot. Set them in Step 2.');
   update();
 }
+function applyCart(c){
+  const got=[];
+  if(c.renovation!=null){ $('hpremReno').value=c.renovation.toFixed(2); got.push('Renovation $'+c.renovation.toFixed(2)); }
+  if(c.contents!=null){ $('hpremContents').value=c.contents.toFixed(2); got.push('Home Contents $'+c.contents.toFixed(2)); }
+  const tot = c.total!=null ? c.total : (c.renovation||0)+(c.contents||0);
+  if(tot && !$('price').value){ $('price').value=tot.toFixed(2); got.push('total $'+tot.toFixed(2)); }
+  if(c.plan && !$('planName').value){ $('planName').value = c.plan + (c.years ? ' ('+c.years+(c.years===1?' year':' years')+')' : ''); got.push(c.plan); }
+  note(got.length ? 'Filled from your Cart summary: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the premium breakdown from that screenshot. Type it into Step 2.');
+  update();
+}
 function applyHomeCover(h){
   if(st.product!=='home') setProduct('home');
   const got=[];
@@ -2116,6 +2154,7 @@ async function addFiles(files){
       let r=null;
       try{ r=await OCRPrices.readImage(im.dataUrl, m=>{ $('readmsg').textContent=m; }); }catch(e){}
       $('reread').disabled=false;
+      if(r && r.kind==='cart'){ applyCart(r.cart); $('readbar').hidden = !attached.length; continue; }
       if(r && r.kind==='trip'){ applyTrip(r.trip); $('readbar').hidden = !attached.length; continue; }
       if(r && r.kind==='homeall'){
         // Home page screenshot: fill the details and coverage, and read the plan prices
