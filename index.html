@@ -171,6 +171,7 @@ main .in{max-width:860px}
 @media (max-width:560px){.card{padding:18px 16px}.row{flex-wrap:wrap}.row input[type=text],.row input[type=date],.row input[type=number],.row select{max-width:100%;flex:1 1 100%;text-align:left}.row .pills{justify-content:flex-start}.row select{text-align-last:left}}
 label.addon{display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--fg)}
 label.addon span{display:flex;flex-direction:column;gap:2px}label.addon b{font-weight:700;font-size:15px}label.addon small{font-size:13px;color:var(--muted)}
+#faddons .row input[type=number]{flex:0 0 120px;max-width:120px}
 label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;flex:none;cursor:pointer}
 #readbar:has(> #readmsg:empty){display:none}
 </style>
@@ -292,7 +293,7 @@ label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;fle
           <div class="row"><label class="k addon"><input type="checkbox" id="faWaiverOn"><span><b>Waiver of co-payment</b><small>Waive your 25% co-payment under ‘Hospital and surgical expense’ for claims above $15,000 (up to $60,000).</small></span></label><input type="number" id="faWaiver" min="0" step="0.01" placeholder="e.g. 134.07"></div>
           <div class="row"><label class="k addon"><input type="checkbox" id="faBondOn"><span><b>Security Bond Protector</b><small>Limit your liabilities on the MOM Security Bond from $5,000 to $250.</small></span></label><input type="number" id="faBond" min="0" step="0.01" placeholder="e.g. 52.32"></div>
         </div>
-        <p class="hint">Tick the add-ons the customer wants: ticked ones are added to the premium. Pasting the Cart summary fills in the prices.</p>
+        <p class="hint">Tick the add-ons the customer wants: ticked ones are added to the premium. Pasting the “Supercharge your coverage” page or the Cart summary fills in the prices.</p>
       </div>
     </section>
 
@@ -1662,7 +1663,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const a1 = inCart(/top\s*up|hospital\s*and\s*surgical/i), a2 = inCart(/waiver/i), a3 = inCart(/security\s*bond/i);
     out.offer = {};
     const all = (data.lines||[]).map(l => (l.text||'').replace(/\s+/g,' '));
-    const offer = re => { const l = all.find(x => re.test(x) && /\+\s?\$\s?[\d,]+\.\d{2}/.test(x)); const m = l && l.match(/\+\s?\$\s?([\d,]+\.\d{2})/); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
+    const offer = re => {
+      const l = all.find(x => re.test(x) && /\+?\s?\$\s?[\d,]+\.\d{2}/.test(x.replace(re,'')));
+      const m = l && l.replace(re,'').match(/\+?\s?[\$S5]\s?([\d,]+\.\d{2})/); if (m) return parseFloat(m[1].replace(/,/g,''));
+      // price read as its own block: the money word on the same row as the title
+      const ws = data.words||[], ti = ws.find(w => re.test(w.text||'') || re.test(((w.text||'')+' '+((ws[ws.indexOf(w)+1]||{}).text||''))));
+      if (!ti) return null; const cy = (ti.bbox.y0+ti.bbox.y1)/2, h = ti.bbox.y1-ti.bbox.y0;
+      const mw = ws.find(w => /\d+\.\d{2}/.test(w.text||'') && Math.abs((w.bbox.y0+w.bbox.y1)/2 - cy) < h && w.bbox.x0 > ti.bbox.x1);
+      return mw ? parseFloat(mw.text.replace(/[^\d.]/g,'')) : null; };
     [['faTopup',/top\s*up/i],['faWaiver',/waiver/i],['faBond',/security\s*bond/i]].forEach(([k,re]) => { const v = offer(re); if (v!=null) out.offer[k] = v; });
     if (a1!=null) out.addons.faTopup = a1; if (a2!=null) out.addons.faWaiver = a2; if (a3!=null) out.addons.faBond = a3;
     return out;
@@ -1678,6 +1686,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const {data} = await worker.recognize(cv);
     const t = data.text || '';
     if (isHelperCart(t)) return {kind:'helpercart', cart: parseHelperCart(data)};
+    if (/supercharge\s*your\s*coverage|security\s*bond\s*protector|waiver\s*of\s*co-?\s*payment/i.test(t)) return {kind:'helperaddons', offer: parseHelperCart(data).offer};
     if (isHelperPage(t)) return {kind:'helper', info: parseHelper(data)};
     if (isHelperPlans(t)) return {kind:'helperplans', months: helperMonths(data, cv), plans: await finishPlans(worker, cv, data, HELPER_PLAN_RE, false)};
     if (/cart\s*summary|total\s*amount/i.test(t) && /renovation\s*coverage|home\s*contents\s*coverage/i.test(t)) return {kind:'cart', cart: parseCart(data)};
@@ -2478,6 +2487,12 @@ async function addFiles(files){
       const shot=(label, ok, status, att)=>{ if(/^(Reading|Loading)/.test($('readmsg').textContent)) $('readmsg').textContent=''; shots.push({label, ok, status, dataUrl:im.dataUrl, im: att ? im : null}); renderThumbs(); update(); };
       const planStatus = () => plans.length ? plans.length+' plan'+(plans.length===1?'':'s')+' read' : 'No prices found';
       if(r && r.kind==='helper'){ applyHelper(r.info); shot('Policy information', filledOK(), filledOK()?'Filled helper details':'Details not read'); $('readbar').hidden = !attached.length; continue; }
+      if(r && r.kind==='helperaddons'){
+        if(st.product!=='helper') setProduct('helper');
+        const got=[]; ADDONS.forEach(([id,label])=>{ const v=r.offer&&r.offer[id]; if(v!=null){ $(id).value=v.toFixed(2); got.push(label.split(' coverage')[0]+' $'+v.toFixed(2)); } });
+        note(got.length ? 'Filled the add-on prices: '+got.join(' · ')+'. Tick the ones the customer wants.' : 'Couldn’t read the add-on prices from that screenshot. Type them in under Add-ons.');
+        shot('Add-ons', got.length>0, got.length ? got.length+' add-on price'+(got.length===1?'':'s')+' read' : 'Prices not read'); $('readbar').hidden = !attached.length; continue;
+      }
       if(r && r.kind==='helpercart'){ applyHelperCart(r.cart); shot('Cart summary', filledOK(), filledOK()?'Filled premium and add-ons':'Amounts not read'); $('readbar').hidden = !attached.length; continue; }
       if(r && r.kind==='helperplans'){
         if(st.product!=='helper') setProduct('helper');
