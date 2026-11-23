@@ -2007,6 +2007,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       ['Helper’s nationality', q.nationality || '—', 1],
       ['Date of birth', q.dob ? fmtDate(parseISO(q.dob)) : '—', 1],
       ['Period of insurance', (q.months||26) + ' months', 1],
+      ['Plan', (q.plan || '—').replace(/\s*plan$/i,'') + ' plan', 1, false, 'orange'],
       period,
     ] : home ? [
       ['Ownership status', q.ownership, 1], ['Type of house', q.houseType, 1], ['Type of property', q.propertyType || '—', 1],
@@ -2021,9 +2022,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     ];
     const placed = []; let col = 0, row = 0;
     const highlights = items.filter(it => it[3]);            // sums insured: their own row, side by side
-    items.filter(it => !it[3]).forEach(([k, v, span]) => {
+    items.filter(it => !it[3]).forEach(([k, v, span, , look]) => {
       if (col + span > 3){ if (placed.length && placed[placed.length-1].row === row) placed[placed.length-1].span += 3 - col; row++; col = 0; }
-      placed.push({col, row, span, k, v}); col += span;
+      placed.push({col, row, span, k, v, look}); col += span;
       if (col >= 3){ row++; col = 0; }
     });
     if (col > 0 && placed.length) placed[placed.length-1].span += 3 - col;   // stretch the last box to the edge
@@ -2034,12 +2035,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       tileRows++;
     }
     placed.forEach(p => {
-      const {row, k, v, hi} = p, ty = y + row*(th+G);
+      const {row, k, v, hi, look} = p, ty = y + row*(th+G);
       const x = p.x != null ? p.x : L + p.col*(tw+G), w = p.w != null ? p.w : tw*p.span + G*(p.span-1);
       // sums insured get a pastel yellow highlight
-      box(x, ty, w, th, hi ? {fill:'#FFF6D6', stroke:'#F0D480', r:6} : {stroke:C.border, r:6});
-      t(k, x+12, ty+17, {size:8, color: hi ? '#7A5C00' : C.muted});
-      t(v, x+12, ty+34, {size:11, bold:true, color:C.fg});
+      const orange = look === 'orange';   // the chosen plan, in Income orange
+      box(x, ty, w, th, orange ? {fill:'#FDE7D3', stroke:'#F6B27A', r:6} : hi ? {fill:'#FFF6D6', stroke:'#F0D480', r:6} : {stroke:C.border, r:6});
+      t(k, x+12, ty+17, {size:8, color: orange ? C.orangeDeep : hi ? '#7A5C00' : C.muted});
+      t(v, x+12, ty+34, {size:11, bold:true, color: orange ? C.orangeDeep : C.fg});
     });
     y += tileRows*th + (tileRows-1)*G + 10;
     // Notes and clauses
