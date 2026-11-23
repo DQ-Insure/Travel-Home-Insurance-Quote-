@@ -1365,11 +1365,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
   // Re-read a struck-through price: crop it, find the strike line (rows dark almost all the way across
   // the text) and rebuild those rows from the row above, then read it as one line of text.
+  // Read the crossed-out price at a few magnifications and take the reading most of them agree on
   async function rereadStruck(worker, cv, b, synth){
+    const votes = {}, order = [];
+    for (const k of [3, 4, 5]){
+      const c = await rereadStruckAt(worker, cv, b, synth, k);
+      if (c && c.length){ const key = c[0].toFixed(2); if (!(key in votes)){ votes[key] = {n:0, c}; order.push(key); } votes[key].n++; }
+    }
+    if (!order.length) return [];
+    order.sort((a,b2) => votes[b2].n - votes[a].n);
+    return votes[order[0]].c;
+  }
+  async function rereadStruckAt(worker, cv, b, synth, k){
     const padX = b.h*0.8, padTop = synth ? 0 : b.h*0.35, padBot = b.h*0.35;
     const x = Math.max(0, Math.floor(b.x0-padX)), y = Math.max(0, Math.floor(b.y0-padTop));
     const w = Math.min(cv.width-x, Math.ceil(b.x1-b.x0+2*padX)), hgt = Math.min(cv.height-y, Math.ceil(b.y1-b.y0+padTop+padBot));
-    const k = 3, c = document.createElement('canvas'); c.width = w*k; c.height = hgt*k;
+    const c = document.createElement('canvas'); c.width = w*k; c.height = hgt*k;
     const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cv, x, y, w, hgt, 0, 0, c.width, c.height);
     const im = g.getImageData(0, 0, c.width, c.height), d = im.data, W = c.width, H = c.height;
     // Background = most common brightness; ink = clearly darker than it (works for grey-on-grey text)
@@ -1666,7 +1677,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const t = data.text || '';
     if (isHelperCart(t)) return {kind:'helpercart', cart: parseHelperCart(data)};
     if (isHelperPage(t)) return {kind:'helper', info: parseHelper(data)};
-    if (isHelperPlans(t)) return {kind:'helperplans', months: helperMonths(data, cv), plans: await finishPlans(worker, cv, data, HELPER_PLAN_RE, true)};
+    if (isHelperPlans(t)) return {kind:'helperplans', months: helperMonths(data, cv), plans: await finishPlans(worker, cv, data, HELPER_PLAN_RE, false)};
     if (/cart\s*summary|total\s*amount/i.test(t) && /renovation\s*coverage|home\s*contents\s*coverage/i.test(t)) return {kind:'cart', cart: parseCart(data)};
     const hasPlans = /\b\d{1,2}\s*years?\b[\s\S]*\$\s?\d/i.test(t) && /plan\s*details|select/i.test(t);
     if (isHomePage(t) || isHomeCoverPage(t)){
@@ -2464,7 +2475,7 @@ async function addFiles(files){
         if(st.product!=='helper') setProduct('helper');
         if(r.months) fs_.months=String(r.months);
         attached.push(im); $('readbar').hidden=false; showPlans(r.plans||[]); shot('Plan selection', plans.length>0, planStatus(), true);
-        if(plans.length) $('readmsg').textContent='Read '+plans.length+' plans ('+fs_.months+' months). The crossed-out prices are too faint to read reliably: paste the Cart summary to fill the price before promotion, or type it.';
+        if(plans.length) $('readmsg').textContent='Read '+plans.length+' plans ('+fs_.months+' months). Check the crossed-out prices match the screenshot: they’re small and faint, so a zoomed-in screenshot reads best. The Cart summary also fills in the exact one for the chosen plan.';
         continue;
       }
       if(r && r.kind==='cart'){ applyCart(r.cart); shot('Cart summary', filledOK(), filledOK()?'Filled premium breakdown':'Amounts not read'); $('readbar').hidden = !attached.length; continue; }
