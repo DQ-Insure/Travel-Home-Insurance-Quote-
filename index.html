@@ -169,6 +169,9 @@ main .in{max-width:860px}
 .card.total{background:var(--accent);color:var(--accent-ink);border:0;gap:10px}
 .card.total h3{color:var(--accent-ink)}
 @media (max-width:560px){.card{padding:18px 16px}.row{flex-wrap:wrap}.row input[type=text],.row input[type=date],.row input[type=number],.row select{max-width:100%;flex:1 1 100%;text-align:left}.row .pills{justify-content:flex-start}.row select{text-align-last:left}}
+label.addon{display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--fg)}
+label.addon span{display:flex;flex-direction:column;gap:2px}label.addon b{font-weight:700;font-size:15px}label.addon small{font-size:13px;color:var(--muted)}
+label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;flex:none;cursor:pointer}
 #readbar:has(> #readmsg:empty){display:none}
 </style>
 
@@ -285,11 +288,11 @@ main .in{max-width:860px}
       <div id="faddons" hidden>
         <p class="sub">Add-ons <span class="opt">optional</span></p>
         <div class="rows">
-          <div class="row"><label class="k" for="faTopup">Top up $40,000 hospital &amp; surgical ($)</label><input type="number" id="faTopup" min="0" step="0.01" placeholder="e.g. 489.41"></div>
-          <div class="row"><label class="k" for="faWaiver">Waiver of co-payment ($)</label><input type="number" id="faWaiver" min="0" step="0.01" placeholder="e.g. 134.07"></div>
-          <div class="row"><label class="k" for="faBond">Security Bond Protector ($)</label><input type="number" id="faBond" min="0" step="0.01" placeholder="e.g. 52.32"></div>
+          <div class="row"><label class="k addon"><input type="checkbox" id="faTopupOn"><span><b>Top up $40,000 hospital and surgical expenses coverage</b><small>Increase total claim limit per year from $60,000 to $100,000</small></span></label><input type="number" id="faTopup" min="0" step="0.01" placeholder="e.g. 489.41"></div>
+          <div class="row"><label class="k addon"><input type="checkbox" id="faWaiverOn"><span><b>Waiver of co-payment</b><small>Waive your 25% co-payment under ‘Hospital and surgical expense’ for claims above $15,000 (up to $60,000).</small></span></label><input type="number" id="faWaiver" min="0" step="0.01" placeholder="e.g. 134.07"></div>
+          <div class="row"><label class="k addon"><input type="checkbox" id="faBondOn"><span><b>Security Bond Protector</b><small>Limit your liabilities on the MOM Security Bond from $5,000 to $250.</small></span></label><input type="number" id="faBond" min="0" step="0.01" placeholder="e.g. 52.32"></div>
         </div>
-        <p class="hint">Type the price of any add-on the customer wants. Add-ons are added to the total.</p>
+        <p class="hint">Tick the add-ons the customer wants: ticked ones are added to the premium. Pasting the Cart summary fills in the prices.</p>
       </div>
     </section>
 
@@ -1644,6 +1647,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const pi = lines.findIndex(l => /^promotion\b/i.test(l));
     if (pi >= 0){ const lab = lines.slice(pi+1, pi+3).join(' ').match(/([A-Za-z][^$]*?promotion[^$]*?discount)/i); if (lab) out.promoLabel = lab[1].replace(/\s+/g,' ').trim(); }
     const a1 = find(/top\s*up|hospital\s*and\s*surgical/i), a2 = find(/waiver/i), a3 = find(/security\s*bond/i);
+    out.offer = {};
+    const all = (data.lines||[]).map(l => (l.text||'').replace(/\s+/g,' '));
+    const offer = re => { const l = all.find(x => re.test(x) && /\+\s?\$\s?[\d,]+\.\d{2}/.test(x)); const m = l && l.match(/\+\s?\$\s?([\d,]+\.\d{2})/); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
+    [['faTopup',/top\s*up/i],['faWaiver',/waiver/i],['faBond',/security\s*bond/i]].forEach(([k,re]) => { const v = offer(re); if (v!=null) out.offer[k] = v; });
     if (a1!=null) out.addons.faTopup = a1; if (a2!=null) out.addons.faWaiver = a2; if (a3!=null) out.addons.faBond = a3;
     return out;
   }
@@ -1767,7 +1774,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const disc = r2(Math.max(0, sub-total));
     const start = parseISO(q.start), m = q.months || 26;
     const end = new Date(start.getFullYear(), start.getMonth()+m, start.getDate()-1);
-    return {lines, sub, disc, total, was:sub, save:disc, startStr:fmtDate(start), endStr:fmtDate(end), note:null};
+    return {lines, sub, disc, total, was:sub, save:disc, pctBase:r2(orig), startStr:fmtDate(start), endStr:fmtDate(end), note:null};
   }
 
   const PW = 595.28, PH = 841.89;            // A4 in points
@@ -1954,7 +1961,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
       const ww = doc.getTextWidth(money(c.was)), wx = px+16+doc.getTextWidth('Was ');
       doc.setDrawColor(C.white); doc.setLineWidth(0.9); doc.line(wx, pyy-3.2, wx+ww, pyy-3.2);
-      const badge = 'YOU SAVE ' + money(c.save) + '  (' + Math.round(c.save/c.was*100) + '% OFF)';
+      const badge = 'YOU SAVE ' + money(c.save) + '  (' + Math.round(c.save/(c.pctBase||c.was)*100) + '% OFF)';
       doc.setFont('helvetica','bold'); doc.setFontSize(9);
       const bw = doc.getTextWidth(badge) + 18;
       box(px+12, pyy+6, Math.min(bw, pw-24), 18, {fill:C.white, r:9});
@@ -1976,7 +1983,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       let a = s.getFullYear()-b.getFullYear(); if (s.getMonth()<b.getMonth() || (s.getMonth()===b.getMonth() && s.getDate()<b.getDate())) a--; return a; })();
     const items = helper ? [
       ['Helper’s nationality', q.nationality || '—', 1],
-      ['Date of birth', q.dob ? fmtDate(parseISO(q.dob)) + (age!=null ? '  (age ' + age + ')' : '') : '—', 1],
+      ['Date of birth', q.dob ? fmtDate(parseISO(q.dob)) : '—', 1],
       ['Period of insurance', (q.months||26) + ' months', 1],
       period,
     ] : home ? [
@@ -2055,6 +2062,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     };
     if (home && (q.renovation || q.contents)) clauseBox('UNDERINSURANCE', UNDERINSURANCE_CLAUSE);
     if (q.family && !home) clauseBox('FAMILY COVERAGE', [['p', FAMILY_CLAUSE]]);
+    // Add-ons offered, in Income's wording; the ticked ones are marked Added
+    if (helper && (q.addonsAll||[]).length){
+      const list = q.addonsAll, inner = R - L - 28 - 120;
+      const rowsA = list.map(a => ({a, desc: wrap(a.desc||'', 8, inner)}));
+      const h = 44 + rowsA.reduce((s,r) => s + 14 + r.desc.length*10.5 + 8, 0) + (rowsA.length-1)*4;
+      y += 6; room(h + 8);
+      // pastel yellow box with its heading inside, set apart from the rest of the quote
+      box(L, y, R-L, h, {fill:'#FFF6D6', stroke:'#F0D480', r:6});
+      t('ADD-ONS', L+14, y+18, {size:7.5, bold:true, color:'#7A5C00', charSpace:0.7});
+      let ay = y + 36;
+      rowsA.forEach(({a, desc}, i) => {
+        if (i){ line(L+14, ay-12, R-14, ay-12, '#F0D480'); ay += 2; }
+        t(a.label, L+14, ay, {size:9.5, bold:true, color:C.fg});
+        t('+ ' + money(a.amt), R-14, ay, {size:9.5, bold:true, color:C.fg, align:'right'});
+        const tag = a.on ? 'ADDED' : 'NOT ADDED';
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); const tw2 = doc.getTextWidth(tag) + 12;
+        doc.setFontSize(9.5); const px2 = R-14 - doc.getTextWidth('+ ' + money(a.amt)) - 8 - tw2;
+        box(px2, ay-8.5, tw2, 12, a.on ? {fill:C.orange, r:6} : {fill:C.white, stroke:'#E3C66A', r:6});
+        t(tag, px2+6, ay+0.5, {size:7, bold:true, color: a.on ? C.white : C.muted});
+        t(desc, L+14, ay+12, {size:8, color:'#6B5A2A'});
+        ay += 14 + desc.length*10.5 + 8 + 4;
+      });
+      y += h + 4;
+    }
     // Premium breakdown
     const rows = c.lines.map(l=>[l.label, money(l.amt), C.fg, C.fg]);
     rows.push(['Sub total', money(c.sub), C.fg, C.fg]);
@@ -2119,7 +2150,9 @@ const PROPERTY_TYPES = {
 };
 const DEFAULT_PROMO = {travel:'25% off Yearly Standard plans!', home:'', helper:''};
 const NATIONALITIES = ['Philippines','Indonesia','Bangladesh','Cambodia','Hong Kong','India','Malaysia','Myanmar','Sri Lanka','Taiwan','Thailand'];
-const ADDONS = [['faTopup','Top up $40,000 hospital and surgical expenses coverage'],['faWaiver','Waiver of co-payment'],['faBond','Security Bond Protector']];
+const ADDONS = [['faTopup','Top up $40,000 hospital and surgical expenses coverage','Increase total claim limit per year from $60,000 to $100,000'],
+  ['faWaiver','Waiver of co-payment','Waive your 25% co-payment under ‘Hospital and surgical expense’ for claims above $15,000 (up to $60,000).'],
+  ['faBond','Security Bond Protector','Limit your liabilities on the MOM Security Bond from $5,000 to $250.']];
 const fs_ = {months:'26'};
 
 // Each product keeps its own screenshots, plans and premium fields, so switching never loses work
@@ -2176,7 +2209,8 @@ function quote(){
     building: hs.building==='na' ? null : hs.building==='yes', start:$('hstart').value, renovation:fmtSum($('hreno').value), contents:fmtSum($('hcontents').value),
     parts:[['Renovation Coverage',num($('hpremReno').value)],['Home Contents Coverage',num($('hpremContents').value)]].filter(p=>p[1]!==null).map(([label,amt])=>({label,amt}))};
   if(st.product==='helper') return {...base, product:'helper', nationality:$('fnat').value, dob:$('fdob').value, start:$('fstart').value, months:+fs_.months,
-    addons: ADDONS.map(([id,label])=>({label, amt:num($(id).value)})).filter(a=>a.amt!==null && a.amt>0)};
+    addons: ADDONS.filter(([id])=>$(id+'On').checked).map(([id,label])=>({label, amt:num($(id).value)})).filter(a=>a.amt!==null && a.amt>0),
+    addonsAll: ADDONS.map(([id,label,desc])=>({label, desc, amt:num($(id).value), on:$(id+'On').checked})).filter(a=>a.amt!==null && a.amt>0)};
   return {...base, product:'travel', yearly:st.yearly, family:st.family, adults:st.adults, children:st.children, region:$('region').value, start:$('start').value, end:$('end').value};
 }
 function problem(q){
@@ -2258,8 +2292,9 @@ document.querySelectorAll('[data-group]').forEach(g=>g.addEventListener('click',
 document.querySelectorAll('[data-hgroup]').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.pill'); if(!b) return; const k=g.dataset.hgroup; hs[k]=b.dataset.v; if(k==='house') fillPropertyTypes(); update();}));
 document.querySelectorAll('[data-fgroup]').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.pill'); if(!b) return; fs_[g.dataset.fgroup]=b.dataset.v; update();}));
 document.querySelectorAll('.stepper').forEach(s=>s.addEventListener('click',e=>{const b=e.target.closest('button'); if(!b||b.disabled) return; st[s.dataset.key]+= +b.dataset.d; update();}));
-['name','region','start','end','price','original','planName','promoLabel','ptype','hstart','hreno','hcontents','hpremReno','hpremContents','fnat','fdob','fstart','faTopup','faWaiver','faBond'].forEach(id=>$(id).addEventListener('input',update));
+['name','region','start','end','price','original','planName','promoLabel','ptype','hstart','hreno','hcontents','hpremReno','hpremContents','fnat','fdob','fstart','faTopup','faWaiver','faBond','faTopupOn','faWaiverOn','faBondOn'].forEach(id=>$(id).addEventListener('input',update));
 $('f').addEventListener('submit',e=>e.preventDefault());
+['price','original'].forEach(id=>$(id).addEventListener('input',()=>{ if(chosen>=0 && plans[chosen]) plans[chosen][id]=num($(id).value); renderPlans(); }));
 $('f').addEventListener('input',()=>{ saved=false; });
 document.querySelectorAll('.prog .chip').forEach(c=>c.addEventListener('click',()=>$(c.dataset.go).scrollIntoView({behavior:'smooth',block:'start'})));
 $('paste-more').onclick=()=>$('file').click();
@@ -2351,7 +2386,9 @@ function applyHelperCart(c){
   const got=[];
   if(c.months){ fs_.months=String(c.months); got.push(c.months+' months'); }
   if(c.plan){ $('planName').value=c.plan; got.push(c.plan); }
-  ADDONS.forEach(([id,label])=>{ const v=c.addons && c.addons[id]; $(id).value = v!=null ? v.toFixed(2) : ''; if(v!=null) got.push(label.split(' coverage')[0]+' $'+v.toFixed(2)); });
+  ADDONS.forEach(([id,label])=>{ const inCart=c.addons && c.addons[id], offer=c.offer && c.offer[id], v = inCart!=null ? inCart : offer;
+    if(v!=null) $(id).value=v.toFixed(2);
+    $(id+'On').checked = inCart!=null; if(inCart!=null) got.push(label.split(' coverage')[0]+' $'+inCart.toFixed(2)); });
   const add = Object.values(c.addons||{}).reduce((s,v)=>s+v,0);
   if(c.planAmt!=null){ $('original').value=c.planAmt.toFixed(2); got.push('plan $'+c.planAmt.toFixed(2)); }
   if(c.total!=null){ const p=Math.round((c.total-add)*100)/100; $('price').value=p.toFixed(2); got.push('total $'+c.total.toFixed(2)); }
@@ -2359,6 +2396,7 @@ function applyHelperCart(c){
   if(c.promoLabel) $('promoLabel').value=c.promoLabel;
   if($('original').value && $('price').value && +$('original').value===+$('price').value) $('original').value='';
   chosen = c.plan ? plans.findIndex(p=>p.name.toLowerCase()===c.plan.toLowerCase()) : -1;
+  if(chosen>=0){ plans[chosen].price=num($('price').value); plans[chosen].original=num($('original').value); }
   note(got.length ? 'Filled from your Cart summary: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the cart from that screenshot. Type the amounts under Choose plan.');
   update();
 }
