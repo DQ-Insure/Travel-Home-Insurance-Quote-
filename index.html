@@ -1657,7 +1657,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     out.promo = find(/^promotion\b/i);
     const pi = lines.findIndex(l => /^promotion\b/i.test(l));
     if (pi >= 0){ const lab = lines.slice(pi+1, pi+3).join(' ').match(/([A-Za-z][^$]*?promotion[^$]*?discount)/i); if (lab) out.promoLabel = lab[1].replace(/\s+/g,' ').trim(); }
-    const a1 = find(/top\s*up|hospital\s*and\s*surgical/i), a2 = find(/waiver/i), a3 = find(/security\s*bond/i);
+    // add-ons in the cart itself (not the "+ $" offer cards beside it); only trusted when the cart panel was found
+    const inCart = re => { if (!head) return null; const l = lines.find(x => re.test(x) && !/\+\s?\$/.test(x)); return l ? amt(l) : null; };
+    const a1 = inCart(/top\s*up|hospital\s*and\s*surgical/i), a2 = inCart(/waiver/i), a3 = inCart(/security\s*bond/i);
     out.offer = {};
     const all = (data.lines||[]).map(l => (l.text||'').replace(/\s+/g,' '));
     const offer = re => { const l = all.find(x => re.test(x) && /\+\s?\$\s?[\d,]+\.\d{2}/.test(x)); const m = l && l.match(/\+\s?\$\s?([\d,]+\.\d{2})/); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
@@ -1711,7 +1713,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     // Plans on one tab share the same discount: work out missing old prices from a plan that read cleanly
     const known = plans.filter(p => p.original!=null);
     const ratios = known.map(p => p.price/p.original);
-    const shared = ratios.length && Math.max(...ratios) - Math.min(...ratios) < 0.02;   // e.g. Travel: every plan 25% off
+    const shared = planRe !== HELPER_PLAN_RE && ratios.length && Math.max(...ratios) - Math.min(...ratios) < 0.02;   // helper plans each have their own discount   // e.g. Travel: every plan 25% off
     if (shared){
       const ratio = ratios.reduce((s,r)=>s+r, 0) / ratios.length;
       plans.forEach(p => {
@@ -2402,8 +2404,13 @@ function applyHelperCart(c){
     $(id+'On').checked = inCart!=null; if(inCart!=null) got.push(label.split(' coverage')[0]+' $'+inCart.toFixed(2)); });
   const add = Object.values(c.addons||{}).reduce((s,v)=>s+v,0);
   if(c.planAmt!=null){ $('original').value=c.planAmt.toFixed(2); got.push('plan $'+c.planAmt.toFixed(2)); }
-  if(c.total!=null){ const p=Math.round((c.total-add)*100)/100; $('price').value=p.toFixed(2); got.push('total $'+c.total.toFixed(2)); }
-  else if(c.planAmt!=null && c.promo!=null){ $('price').value=(c.planAmt-c.promo).toFixed(2); }
+  // plan premium after promotion: plan price minus the promotion; otherwise the total less any add-ons in the cart
+  let p=null;
+  if(c.planAmt!=null && c.promo!=null) p=c.planAmt-Math.abs(c.promo);
+  else if(c.planAmt!=null && c.total!=null && !add) p=Math.min(c.planAmt, c.total);
+  else if(c.total!=null) p=c.total-add;
+  if(p!=null && p>0){ p=Math.round(p*100)/100; $('price').value=p.toFixed(2); }
+  if(c.total!=null) got.push('total $'+c.total.toFixed(2));
   if(c.promoLabel) $('promoLabel').value=c.promoLabel;
   if($('original').value && $('price').value && +$('original').value===+$('price').value) $('original').value='';
   chosen = c.plan ? plans.findIndex(p=>p.name.toLowerCase()===c.plan.toLowerCase()) : -1;
