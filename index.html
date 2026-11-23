@@ -2088,10 +2088,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       rowsA.forEach(({a, desc}, i) => {
         if (i){ line(L+14, ay-12, R-14, ay-12, '#F0D480'); ay += 2; }
         t(a.label, L+14, ay, {size:9.5, bold:true, color:C.fg});
-        t('+ ' + money(a.amt), R-14, ay, {size:9.5, bold:true, color:C.fg, align:'right'});
+        const priceTxt = a.amt!=null ? '+ ' + money(a.amt) : '';   // every add-on is listed; price shown when known
+        if (priceTxt) t(priceTxt, R-14, ay, {size:9.5, bold:true, color:C.fg, align:'right'});
         const tag = a.on ? 'ADDED' : 'NOT ADDED';
         doc.setFont('helvetica','bold'); doc.setFontSize(7); const tw2 = doc.getTextWidth(tag) + 12;
-        doc.setFontSize(9.5); const px2 = R-14 - doc.getTextWidth('+ ' + money(a.amt)) - 8 - tw2;
+        doc.setFontSize(9.5); const px2 = R-14 - (priceTxt ? doc.getTextWidth(priceTxt) + 8 : 0) - tw2;
         box(px2, ay-8.5, tw2, 12, a.on ? {fill:C.orange, r:6} : {fill:C.white, stroke:'#E3C66A', r:6});
         t(tag, px2+6, ay+0.5, {size:7, bold:true, color: a.on ? C.white : C.muted});
         t(desc, L+14, ay+12, {size:8, color:'#6B5A2A'});
@@ -2223,7 +2224,7 @@ function quote(){
     parts:[['Renovation Coverage',num($('hpremReno').value)],['Home Contents Coverage',num($('hpremContents').value)]].filter(p=>p[1]!==null).map(([label,amt])=>({label,amt}))};
   if(st.product==='helper') return {...base, product:'helper', nationality:$('fnat').value, dob:$('fdob').value, start:$('fstart').value, months:+fs_.months,
     addons: ADDONS.filter(([id])=>$(id+'On').checked).map(([id,label])=>({label, amt:num($(id).value)})).filter(a=>a.amt!==null && a.amt>0),
-    addonsAll: ADDONS.map(([id,label,desc])=>({label, desc, amt:num($(id).value), on:$(id+'On').checked})).filter(a=>a.amt!==null && a.amt>0)};
+    addonsAll: ADDONS.map(([id,label,desc])=>{ const amt=num($(id).value); return {label, desc, amt: amt>0 ? amt : null, on:$(id+'On').checked && amt>0}; })};
   return {...base, product:'travel', yearly:st.yearly, family:st.family, adults:st.adults, children:st.children, region:$('region').value, start:$('start').value, end:$('end').value};
 }
 function problem(q){
