@@ -2,18 +2,20 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 <style>
-/* Layout: header, orange-tint hero with product cards, then three step cards (paste · check · download) that stack on phones */
+/* Layout: navy sidebar with two product groups (Personal Lines · Commercial Lines), main column with step cards; sidebar becomes a top bar on phones */
 :root{
-  --bg:#FFFFFF; --band:#FFF4EA; --card:#FFFFFF; --fg:#1F2633; --navy:#14234B; --muted:#5D6675; --line:#E3E7EE; --field:#CBD2DC;
-  --chip:#EEF2F7; --accent:#E8710A; --accent-ink:#FFFFFF; --ok:#0E7F7A; --err:#B42318; --soft:#F8FAFC;
+  /* Palette 2 · Charcoal & orange */
+  --bg:#FFFFFF; --page:#F3F3F1; --band:#FFF4EA; --card:#FFFFFF; --fg:#22262E; --navy:#22262E; --muted:#5F636B; --line:#E4E2DE; --field:#CFCCC6;
+  --chip:#EFEEEB; --accent:#E8710A; --accent-ink:#FFFFFF; --ok:#0E7F7A; --err:#B42318; --soft:#F8F7F5;
+  --side:#22262E; --side-ink:#FFFFFF; --side-muted:#A9AFBA;
   --font:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12151B; --band:#1E1913; --card:#181C24; --fg:#E9ECF2; --navy:#C9D5F0; --muted:#A3ACBB; --line:#2C3340; --field:#3A4352;
-  --chip:#242B37; --accent:#FF8A2A; --accent-ink:#1A1208; --ok:#3FC2BB; --err:#F97066; --soft:#1C212B; color-scheme:dark}}
+  --chip:#242B37; --page:#12151B; --accent:#FF8A2A; --accent-ink:#1A1208; --ok:#3FC2BB; --err:#F97066; --soft:#1C212B; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12151B; --band:#1E1913; --card:#181C24; --fg:#E9ECF2; --navy:#C9D5F0; --muted:#A3ACBB; --line:#2C3340; --field:#3A4352;
-  --chip:#242B37; --accent:#FF8A2A; --accent-ink:#1A1208; --ok:#3FC2BB; --err:#F97066; --soft:#1C212B; color-scheme:dark}
+  --chip:#242B37; --page:#12151B; --accent:#FF8A2A; --accent-ink:#1A1208; --ok:#3FC2BB; --err:#F97066; --soft:#1C212B; color-scheme:dark}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
 .in{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -173,37 +175,70 @@ label.addon{display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--
 label.addon span{display:flex;flex-direction:column;gap:2px}label.addon b{font-weight:700;font-size:15px}label.addon small{font-size:13px;color:var(--muted)}
 #faddons .row input[type=number]{flex:0 0 120px;max-width:120px}
 label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;flex:none;cursor:pointer}
+/* compact details summary */
+.dsum{margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.dsum .wide{grid-column:span 2}
+.card.compact #drows{order:1}.card.compact .dsum{order:2}.card.compact .card-h{order:0}
+.dsum div{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:0}
+.dsum dt{font-size:12px;color:var(--muted)}
+.dsum dd{margin:0;font-weight:700;font-size:14.5px;color:var(--fg);overflow-wrap:anywhere}
+.card.compact #travel-fields,.card.compact #home-fields,.card.compact #helper-fields,.card.compact .row.ro{display:none!important}
+.card.compact #drows>.row:first-child{border-bottom:0}
+/* one orange border on focus, no second ring */
+.row input:focus,.row select:focus{outline:none;box-shadow:none}
 #readbar:has(> #readmsg:empty){display:none}
+
+/* App shell */
+body{margin:0;background:var(--page)}
+.shell{display:flex;min-height:100vh;align-items:stretch;background:linear-gradient(to right,var(--side) 248px,transparent 248px)}
+.side{flex:0 0 248px;background:var(--side);color:var(--side-ink);padding:28px 16px;display:flex;flex-direction:column;gap:26px;box-sizing:border-box;position:sticky;top:0;height:100vh;overflow:auto}
+.side .logo{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.side .logo b{font-size:20px;font-weight:900;letter-spacing:.03em}
+.side .logo span{font-size:12.5px;color:var(--side-muted)}
+.side .grp{display:flex;flex-direction:column;gap:4px}
+.side .gl{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--side-muted);padding:0 8px 6px}
+.side .product{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:10px;color:#E3E5E9;font-size:15px;font-weight:600;cursor:pointer;min-height:44px}
+.side .product:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
+.side .product:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.side .product[aria-pressed="true"]{background:var(--accent);color:#FFFFFF;font-weight:700}
+.side .product small{display:block;font-size:11.5px;font-weight:500;color:var(--side-muted)}
+.side .product[aria-pressed="true"] small{color:#FFE7D1}
+.shell>main{flex:1 1 auto;min-width:0}
+.shell>main .in{max-width:900px;padding-block:30px 60px}
+.headline{display:flex;flex-direction:column;gap:4px}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+h1.sec{margin:0;font-size:30px;font-weight:800;color:var(--navy);line-height:1.15}
+.prog{background:var(--page)}
+#bix h3{margin:0}
+.shell>main .in:has(#motor:not([hidden])){max-width:1180px}
+@media (max-width:820px){
+  .shell{flex-direction:column;background:none}
+  .side{position:static;height:auto;flex:none;padding:14px 12px;gap:12px}
+  .side .logo{flex-direction:row;align-items:baseline;gap:8px}
+  .side .grp{flex-direction:row;flex-wrap:wrap;gap:6px}
+  .side .gl{width:100%;padding:0 4px}
+  .side .product{width:auto;padding:8px 12px;font-size:14px}
+  .side .product small{display:none}
+}
 </style>
 
-<header class="top"><div class="in">
-  <span class="brand">DQ INSURE</span>
-</div></header>
-
-<section class="hero"><div class="in">
-  <h1>DQ Insure Quote Generator</h1>
-  <div class="products" role="group" aria-label="Product">
-    <button type="button" class="product" id="pr-travel" data-p="travel">
-      <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
-      <span><b>Travel insurance</b></span>
-    </button>
-    <button type="button" class="product" id="pr-home" data-p="home">
-      <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></span>
-      <span><b>Home insurance</b></span>
-    </button>
-    <button type="button" class="product" id="pr-helper" data-p="helper">
-      <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/><path d="M12 14v3"/></svg></span>
-      <span><b>Domestic helper</b></span>
-    </button>
-    <button type="button" class="product" id="pr-motor" data-p="motor">
-      <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/></svg></span>
-      <span><b>Motor comparison</b></span>
-    </button>
+<div class="shell">
+<nav class="side" aria-label="Products">
+  <div class="logo"><b>DQ INSURE</b><span>Quote Generator</span></div>
+  <div class="grp" role="group" aria-labelledby="g-personal">
+    <span class="gl" id="g-personal">Personal Lines</span>
+    <button type="button" class="product" id="pr-travel" data-p="travel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg><span>Travel</span></button>
+    <button type="button" class="product" id="pr-home" data-p="home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><span>Home</span></button>
+    <button type="button" class="product" id="pr-helper" data-p="helper"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg><span>Domestic helper</span></button>
+    <button type="button" class="product" id="pr-motor" data-p="motor"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/></svg><span>Motor comparison</span></button>
   </div>
-</div></section>
-
+  <div class="grp" role="group" aria-labelledby="g-commercial">
+    <span class="gl" id="g-commercial">Commercial Lines (BIX)</span>
+    <button type="button" class="product" id="pr-bix" data-p="bix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg><span>Business products <small>coming soon</small></span></button>
+  </div>
+</nav>
 <main><div class="in">
-  <h2 class="sec" id="sec-title">Travel quote</h2>
+  <div class="headline"><span class="eyebrow" id="sec-eyebrow">Personal Lines</span><h1 class="sec" id="sec-title">Travel quote</h1></div>
   <form class="flow" id="f" autocomplete="off">
     <nav class="prog" aria-label="Progress">
       <button type="button" class="chip" data-go="c-shots"><span class="dot">1</span><span>Screenshots</span></button>
@@ -229,8 +264,9 @@ label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;fle
     </section>
 
     <section class="card" id="c-details" aria-labelledby="h-details">
-      <div class="card-h"><h3 id="h-details">Trip details</h3></div>
-      <div class="rows">
+      <div class="card-h"><h3 id="h-details">Trip details</h3><button type="button" class="ghost" id="dedit" aria-expanded="false" hidden>Edit details</button></div>
+      <dl class="dsum" id="dsum" hidden></dl>
+      <div class="rows" id="drows">
         <div class="row"><label class="k" for="name">Insured name</label><input type="text" id="name" placeholder="Customer’s full name"></div>
         <div id="travel-fields" class="rows">
           <div class="row"><span class="k">Policy type</span>
@@ -335,7 +371,12 @@ label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;fle
     <p class="status" id="m-status" aria-live="polite"></p>
     <div class="mpreview"><div id="m-edit"></div><div class="picks" id="m-picks" hidden role="group" aria-label="Quick values"></div></div>
   </section>
+  <section id="bix" class="card" hidden aria-label="Commercial Lines">
+    <h3>Commercial Lines (BIX)</h3>
+    <p class="hint">This section is ready for Income’s BIX business products. Tell Claude which products to add (for example, the BIX policies you quote most) and send screenshots of their quote pages.</p>
+  </section>
 </div></main>
+</div>
 
 <script>// Motor comparison board: editable table -> email-safe HTML (Outlook) with insurer brand colours.
 (function(root){
@@ -2208,7 +2249,8 @@ function fillPropertyTypes(keep){
 function saveSlot(){ const s=slots[st.product]; s.attached=attached; s.shots=shots; s.plans=plans; s.chosen=chosen; s.price=$('price').value; s.original=$('original').value; s.planName=$('planName').value; s.promo=$('promoLabel').value; s.tripmsg=$('tripmsg').hidden?'':$('tripmsg').textContent; s.readmsg=$('readbar').hidden?'':$('readmsg').textContent; }
 function loadSlot(){ const s=slots[st.product]; attached=s.attached; shots=s.shots; plans=s.plans; chosen=s.chosen; $('price').value=s.price; $('original').value=s.original; $('planName').value=s.planName; $('promoLabel').value=s.promo;
   $('tripmsg').hidden=!s.tripmsg; $('tripmsg').textContent=s.tripmsg; $('readbar').hidden=!s.readmsg; $('readmsg').textContent=s.readmsg; renderThumbs(); }
-function setProduct(p){ if(p===st.product) return; if(st.product!=='motor') saveSlot(); st.product=p; if(p!=='motor') loadSlot(); update(); }
+const NO_SLOT = {motor:1, bix:1};
+function setProduct(p){ if(p===st.product) return; if(!NO_SLOT[st.product]) saveSlot(); st.product=p; if(!NO_SLOT[p]) loadSlot(); update(); }
 
 function pickPlan(i){
   chosen=i; const p=plans[i];
@@ -2258,10 +2300,22 @@ function fileTag(q){
     : 'Income Travel Quote ('+(q.yearly?'Yearly':'Per-trip')+', '+(q.family?'Family':'Individual-Group')+', '+q.region+')';
 }
 
+// Details card: once a screenshot has filled the details, show them as a compact summary; "Edit details" opens the full controls
+let detailsEdit = null;   // null = automatic
+function dsumItems(q, c){
+  const per = c ? c.startStr+' – '+c.endStr : '—';
+  if(q.product==='home') return [['Ownership',q.ownership],['Type of house',q.houseType],['Type of property',q.propertyType||'—'],
+    ...(q.building===true?[['Building coverage','Yes']]:[]),['Coverage period',per],...(q.renovation?[['Renovation',q.renovation]]:[]),...(q.contents?[['Home contents',q.contents]]:[])];
+  if(q.product==='helper') return [['Nationality',q.nationality||'—'],['Date of birth',q.dob?q.dob.split('-').reverse().join('/'):'—'],['Period',q.months+' months'],['Coverage period',per]];
+  return [['Policy',q.yearly?'Yearly':'Per-trip'],['Coverage',q.family?'Family':'Individual/Group'],[q.family?'Children':'Adults',String(q.family?q.children:q.adults)],['Region',q.region],['Coverage period',per]];
+}
 function update(){
   const home = st.product==='home', motor = st.product==='motor', helper = st.product==='helper', travel = st.product==='travel';
-  ['travel','home','helper','motor'].forEach(p=>$('pr-'+p).setAttribute('aria-pressed', String(st.product===p)));
-  $('f').hidden = motor; $('motor').hidden = !motor;
+  const bix = st.product==='bix';
+  ['travel','home','helper','motor','bix'].forEach(p=>$('pr-'+p).setAttribute('aria-pressed', String(st.product===p)));
+  $('f').hidden = motor || bix; $('motor').hidden = !motor; $('bix').hidden = !bix;
+  $('sec-eyebrow').textContent = bix ? 'Commercial Lines (BIX)' : 'Personal Lines';
+  if(bix){ $('sec-title').textContent='Business quote'; return; }
   if(motor){ $('sec-title').textContent='Motor comparison'; return; }
   $('sec-title').textContent = home ? 'Home quote' : helper ? 'Domestic helper quote' : 'Travel quote';
   const dTitle = home ? 'Property details' : helper ? 'Helper details' : 'Trip details';
@@ -2301,6 +2355,13 @@ function update(){
   let cp='—';
   if(q.start && (!travel || q.yearly || q.end)){ try{ const c0=Quote.compute({...q, price:q.price??0}); cp=c0.startStr+' – '+c0.endStr; }catch(e){} }
   $('cperiod').textContent=cp;
+  { let c0=null; try{ if(cp!=='—') c0=Quote.compute({...q, price:q.price??0}); }catch(e){}
+    const auto = shots.some(s=>s.ok && !/Cart|Add-ons|Plan|Plans/.test(s.label));
+    const compact = detailsEdit===null ? auto : !detailsEdit;
+    const dl=$('dsum'); dl.innerHTML='';
+    dsumItems(q,c0).forEach(([k,v])=>{ const d=document.createElement('div'); if(k==='Coverage period') d.className='wide'; const dt=document.createElement('dt'); dt.textContent=k; const dd=document.createElement('dd'); dd.textContent=v||'—'; d.append(dt,dd); dl.appendChild(d); });
+    $('c-details').classList.toggle('compact', compact); dl.hidden=!compact;
+    $('dedit').hidden = !(auto || detailsEdit!==null); $('dedit').textContent = compact ? 'Edit details' : 'Done'; $('dedit').setAttribute('aria-expanded', String(!compact)); }
   const detailsOK = !!q.name && !!q.start && (!travel || q.yearly || (q.end && q.end>=q.start)) && (!home || !!q.propertyType) && (!helper || (!!q.nationality && !!q.dob));
   const planOK = q.price!==null && !!q.plan;
   const done=[shots.length>0 || attached.length>0, detailsOK, planOK, saved && !err];
@@ -2323,6 +2384,7 @@ $('f').addEventListener('submit',e=>e.preventDefault());
 $('f').addEventListener('input',()=>{ saved=false; });
 document.querySelectorAll('.prog .chip').forEach(c=>c.addEventListener('click',()=>$(c.dataset.go).scrollIntoView({behavior:'smooth',block:'start'})));
 $('paste-more').onclick=()=>$('file').click();
+$('dedit').onclick=()=>{ const compact=$('c-details').classList.contains('compact'); detailsEdit = compact; update(); };
 
 // ---- Reading screenshots with Claude (inside Claude only) ----
 const PROMPT = `These images are screenshots of an insurance website showing plan options and prices for one customer's case.
@@ -2475,7 +2537,7 @@ function loadImage(file){
   });
 }
 async function addFiles(files){
-  if(st.product==='motor') return;
+  if(NO_SLOT[st.product]) return;
   const imgs=[...files].filter(f=>f && f.type && f.type.startsWith('image/'));
   if(!imgs.length){ $('status').className='status err'; $('status').textContent='That isn’t an image. Attach a PNG or JPG screenshot.'; return; }
   if(!canRead && window.OCRPrices){
