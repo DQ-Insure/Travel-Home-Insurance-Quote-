@@ -1,6 +1,7 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DQ Insure Quote Generator</title><style>[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0}</style></head><body><title>DQ Insure Quote Generator</title>
+<!doctype html><html lang="en" data-look="glass"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DQ Insure Quote Generator</title><style>[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0}</style></head><body><title>DQ Insure Quote Generator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<script>document.documentElement.dataset.look=document.documentElement.dataset.look||"glass";</script>
 <style>
 /* Layout: navy sidebar with two product groups (Personal Lines · Commercial Lines), main column with step cards; sidebar becomes a top bar on phones */
 :root{
@@ -127,7 +128,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
 /* Guided flow: progress chips, then stacked cards (screenshots · details · plan · download) */
 main .in{max-width:860px}
 .flow{display:flex;flex-direction:column;gap:16px}
-.prog{display:flex;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:4;background:var(--bg);padding:8px 0}
+.prog{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0}
 .chip{font:inherit;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:7px 16px 7px 8px;cursor:pointer}
 .chip .dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:800;border:1.5px solid var(--field);color:var(--muted)}
 .chip.done{color:var(--navy)}
@@ -186,6 +187,36 @@ label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;fle
 .card.compact #drows>.row:first-child{border-bottom:0}
 /* one orange border on focus, no second ring */
 .row input:focus,.row select:focus{outline:none;box-shadow:none}
+/* ---- Look 1: mesh gradient + glass cards ---- */
+:root[data-look="glass"] body{background:#FBF7F4}
+:root[data-look="glass"] .shell>main{background:
+  radial-gradient(700px 520px at 95% 0%,rgba(255,154,61,.40),transparent 70%),
+  radial-gradient(640px 560px at 0% 28%,rgba(255,199,161,.42),transparent 70%),
+  radial-gradient(620px 560px at 100% 55%,rgba(245,183,208,.32),transparent 70%),
+  radial-gradient(680px 560px at 5% 80%,rgba(255,170,110,.30),transparent 70%),
+  radial-gradient(640px 520px at 90% 100%,rgba(255,199,161,.40),transparent 70%),#FBF7F4}   /* spread down the whole page, no seam */
+:root[data-look="glass"] .card:not(.total){background:rgba(255,255,255,.62);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.75);box-shadow:0 10px 30px rgba(34,38,46,.06);border-radius:20px}
+:root[data-look="glass"] .card.total{border-radius:20px;box-shadow:0 16px 40px rgba(232,113,10,.35)}
+:root[data-look="glass"] .chip:not(.now){background:rgba(255,255,255,.6);border-color:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+:root[data-look="glass"] .prog{background:transparent}
+:root[data-look="glass"] .plan,:root[data-look="glass"] .dsum div,:root[data-look="glass"] .tile{background:rgba(255,255,255,.55)}
+:root[data-look="glass"] .plan[aria-pressed="true"]{background:rgba(255,236,219,.85)}
+:root[data-look="glass"] .drop{background:rgba(255,255,255,.4)}
+:root[data-look="glass"] h1.sec{letter-spacing:-.02em}
+/* ---- Look 3: full dark with orange glow ---- */
+:root[data-look="dark"]{--bg:#15171C;--page:#15171C;--card:rgba(255,255,255,.045);--fg:#ECEDEF;--navy:#FFFFFF;--muted:#A3A8B2;--line:rgba(255,255,255,.09);--field:rgba(255,255,255,.2);
+  --chip:rgba(255,255,255,.08);--soft:rgba(255,255,255,.04);--band:rgba(232,113,10,.16);--side:#0E1013;--ok:#4FD1C5;color-scheme:dark}
+:root[data-look="dark"] body{background:#15171C}
+:root[data-look="dark"] .shell>main{background:radial-gradient(640px 460px at 95% -8%,rgba(232,113,10,.28),transparent 70%),radial-gradient(520px 420px at 0% 85%,rgba(232,113,10,.09),transparent 70%),#15171C;background-attachment:fixed}
+:root[data-look="dark"] .side{border-right:1px solid rgba(255,255,255,.06)}
+:root[data-look="dark"] .card:not(.total){border:1px solid rgba(255,255,255,.08);border-radius:20px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+:root[data-look="dark"] .card.total{border-radius:20px;box-shadow:0 16px 48px rgba(232,113,10,.3)}
+:root[data-look="dark"] .prog{background:transparent}
+:root[data-look="dark"] .chip.now{background:#FFFFFF;color:#15171C;border-color:#FFFFFF}
+:root[data-look="dark"] .chip.now .dot{background:#15171C;border-color:#15171C;color:#FFFFFF}
+:root[data-look="dark"] select option{background:#22262E;color:#ECEDEF}
+:root[data-look="dark"] .tile .pic img{opacity:.25}
+:root[data-look="dark"] .ghost{background:transparent;color:#ECEDEF}
 #readbar:has(> #readmsg:empty){display:none}
 
 /* App shell */
