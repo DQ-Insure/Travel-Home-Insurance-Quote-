@@ -1863,7 +1863,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
     if (isTripPage(data.text||'') && !/classic|deluxe|preferred/i.test(data.text||'')) return {kind:'trip', trip: parseTrip(data, cv)};
     const policy = /per-?trip\s*policy\s*plans/i.test(data.text||'') ? 'pertrip' : /yearly\s*policy\s*plans/i.test(data.text||'') ? 'yearly' : null;
-    return {kind:'plans', policy, plans: await finishPlans(worker, cv, data)};
+    // promotion banner on the plans page, e.g. "50% off Standard Per-trip plans!"
+    const pl = (data.lines||[]).map(l => (l.text||'').replace(/\s+/g,' ').trim()).find(l => /\d{1,2}\s*%\s*off\b/i.test(l));
+    const promo = pl ? (pl.match(/\d{1,2}\s*%\s*off\b[^$|]*?(?:plans?!?|$)/i)||[pl])[0].replace(/\s+%/,'%').trim() : null;
+    return {kind:'plans', policy, promo, plans: await finishPlans(worker, cv, data)};
   }
 
   async function readPlans(dataUrl, onStatus){
@@ -2692,7 +2695,7 @@ function showPlans(found){
   const miss = plans.filter(p=>p.originalMissing).map(p=>p.name), inf = plans.filter(p=>p.inferred).map(p=>p.name);
   $('readmsg').textContent='Read '+plans.length+' plan'+(plans.length===1?'':'s')+'. Check the amounts match the screenshot.'
     + (miss.length ? ' No crossed-out price found for '+miss.join(', ')+'. If there is one, type it into “Price before promotion”.' : '')
-    + (inf.length ? ' The crossed-out price for '+inf.join(', ')+' was worked out from the same discount as the other plans, so double-check it.' : '');
+    + (inf.length ? ' The crossed-out price for '+inf.join(', ')+' was worked out from the discount shown, so double-check it against the screenshot.' : '');
   pickPlan(sel>=0 ? sel : 0);
 }
 let readCtl=null;
@@ -2895,6 +2898,10 @@ async function addFiles(files){
       }
       attached.push(im);
       if(r && r.policy && st.product==='travel'){ st.yearly = r.policy==='yearly'; }
+      // Income's promotion banner: use its wording, and when no crossed-out price was read, work it out from the % off
+      if(r && r.promo && st.product==='travel'){ $('promoLabel').value = r.promo; }
+      if(r && st.product==='travel' && r.plans){ const pct = +(((r.promo||$('promoLabel').value||'').match(/(\d{1,2})\s*%\s*off/i)||[])[1]||0);
+        if(pct>0 && pct<90) r.plans.forEach(p=>{ if(p.price!=null && !p.original){ p.original = Math.round(p.price/(1-pct/100)*100)/100; p.inferred = true; p.originalMissing = false; } }); }
       if(r) showPlans(r.plans||[]); else { $('readmsg').textContent='Couldn’t read the screenshot here. Type the plan’s prices under Choose plan.'; update(); }
       shot('Plans table', plans.length>0, planStatus(), true);
     }
