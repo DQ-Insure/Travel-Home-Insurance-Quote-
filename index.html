@@ -2249,7 +2249,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const forLine = per ? 'for ' + per : null;
     const pw = 214, px = R-pw, py = top-6;
     const perPax = (q.product==='travel' && !q.family && q.insurer!=='liberty' && (q.adults > 1 || (q.children > 0 && q.childPrice != null)))
-      ? [q.adults ? money(q.price) + ' per adult' : '', (q.children > 0 && q.childPrice != null) ? money(q.childPrice) + ' per child' : ''].filter(Boolean).join('  ·  ') : null;
+      ? [q.adults ? money(q.price) + '/adult' : '', (q.children > 0 && q.childPrice != null) ? money(q.childPrice) + '/child' : ''].filter(Boolean).join('  ·  ') : null;
     const ph = 64 + (perPax ? 14 : 0) + (c.save > 0 ? 34 : 0);
     // Left: a proper title block, centred against the panel:
     //   eyebrow  INCOME · INSURANCE QUOTE   (small, spaced, with an orange rule)
@@ -2421,8 +2421,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     // Premium breakdown
     const rows = c.lines.map(l=>[l.label, money(l.amt), C.fg, C.fg]);
     rows.push(['Sub total', money(c.sub), C.fg, C.fg]);
-    if (c.disc > 0) rows.push(['Promotion' + (q.promoLabel ? ' · ' + q.promoLabel : ''), '-'+money(c.disc), C.promo, C.promo]);
-    const bh = 18 + 20 + rows.length*18 + 12 + 22 + 12;
+    // Promotion: the amount on its own row, the wording wrapped underneath in smaller text (never runs into the amount)
+    const promoLines = (c.disc > 0 && q.promoLabel) ? wrap(q.promoLabel, 8.5, R - L - 28) : [];
+    if (c.disc > 0) rows.push(['Promotion', '-'+money(c.disc), C.promo, C.promo, promoLines]);
+    const bh = 18 + 20 + rows.length*18 + promoLines.length*11 + (promoLines.length ? 2 : 0) + 12 + 22 + 12;
     y += 14; room(bh + 20);
     t('Premium breakdown', L, y, {size:11.5, bold:true, color:C.navy});
     y += 10;
@@ -2430,7 +2432,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const head = helper ? 'Domestic Helper Insurance' : lib && q.plan && !/plan$/i.test(q.plan) ? q.plan + ' plan' : q.plan;
     t(head, L+14, ry, {size:9.5, bold:true, color:C.navy});
     if (forLine && !/year/i.test(head)){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); t('· ' + (helper ? per : forLine), L+14 + doc.getTextWidth(head + ' '), ry, {size:9.5, color:C.muted}); }
-    rows.forEach(([k,v,kc,vc]) => { ry += 18; t(k, L+14, ry, {size:9.5, color:kc}); t(v, R-14, ry, {size:9.5, bold:true, color:vc, align:'right'}); });
+    rows.forEach(([k,v,kc,vc,sub]) => { ry += 18; t(k, L+14, ry, {size:9.5, color:kc}); t(v, R-14, ry, {size:9.5, bold:true, color:vc, align:'right'});
+      if (sub && sub.length){ t(sub, L+14, ry + 12.5, {size:8.5, color:kc}); ry += sub.length*11 + 2; } });
     ry += 12; line(L+14, ry, R-14, ry, C.border);
     ry += 20; t(lib ? 'Total amount' : 'Total amount (incl. GST)', L+14, ry, {size:10.5, bold:true, color:C.navy}); t(money(c.total), R-14, ry, {size:11.5, bold:true, color:C.navy, align:'right'});
     box(L, y, R-L, ry+14-y, {stroke:C.border, r:6});
