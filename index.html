@@ -2040,8 +2040,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       : q.product==='home'
         ? [{label: (q.years||1) > 1 ? 'Premium ('+q.years+' years)' : 'Annual premium', amt:r2(orig)}]
         : lib ? [{label: travellersText(q), amt:r2(orig)}]
-        : [{label: q.family ? 'Family' : q.adults + (q.adults===1?' Adult':' Adults'), amt:r2(n*orig)},
-           ...(kids ? [{label: q.children + (q.children===1?' Child':' Children'), amt:r2(q.children*(q.childOriginal || q.childPrice))}] : [])];
+        : [{label: q.family ? 'Family' : q.adults + (q.adults===1?' Adult':' Adults') + (q.adults > 1 ? ' × ' + money(orig) : ''), amt:r2(n*orig)},
+           ...(kids ? [{label: q.children + (q.children===1?' Child':' Children') + (q.children > 1 ? ' × ' + money(q.childOriginal || q.childPrice) : ''), amt:r2(q.children*(q.childOriginal || q.childPrice))}] : [])];
     const sub = r2(lines.reduce((s,l)=>s+l.amt, 0));
     const total = r2(n*q.price + (kids ? q.children*q.childPrice : 0));
     const disc = r2(Math.max(0, sub-total));
@@ -2248,7 +2248,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const per = home ? yrs + (yrs===1 ? ' year' : ' years') : helper ? (q.months||26) + ' months' : null;
     const forLine = per ? 'for ' + per : null;
     const pw = 214, px = R-pw, py = top-6;
-    const ph = 64 + (c.save > 0 ? 34 : 0);
+    const perPax = (q.product==='travel' && !q.family && q.insurer!=='liberty' && (q.adults > 1 || (q.children > 0 && q.childPrice != null)))
+      ? [q.adults ? money(q.price) + ' per adult' : '', (q.children > 0 && q.childPrice != null) ? money(q.childPrice) + ' per child' : ''].filter(Boolean).join('  ·  ') : null;
+    const ph = 64 + (perPax ? 14 : 0) + (c.save > 0 ? 34 : 0);
     // Left: a proper title block, centred against the panel:
     //   eyebrow  INCOME · INSURANCE QUOTE   (small, spaced, with an orange rule)
     //   title    Home Insurance             (big, bold, orange)
@@ -2279,6 +2281,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       doc.setFont('helvetica','bold'); doc.setFontSize(26);
       t('/ ' + per, px+16 + doc.getTextWidth(money(c.total)) + 5, pyy, {size:11, bold:true, color:C.white});
     }
+    if (perPax){ pyy += 15; t(perPax, px+16, pyy, {size:9.5, bold:true, color:C.white}); }
     if (c.save > 0){
       // Was-price struck through, then a white savings badge
       pyy += 15;
@@ -2637,6 +2640,7 @@ function setProduct(p){ if(p==='travel'){ if(TRAVEL[st.product]) return; p=lastT
 document.querySelectorAll('.ins').forEach(b=>b.addEventListener('click',()=>{ const p=b.dataset.p; if(p===st.product) return; saveSlot(); st.product=p; lastTravel=p; loadSlot(); loadFact(); setRegions(); update(); }));
 
 function pickPlan(i){
+  cartLock[st.product]=false;   // choosing a plan card by hand uses that card's prices
   chosen=i; const p=plans[i];
   $('price').value = p.price ?? ''; $('original').value = p.original ?? ''; $('planName').value = p.name;
   $('cprice').value = p.child ? (p.child.price ?? '') : ''; $('corig').value = p.child ? (p.child.original ?? '') : '';
@@ -2805,6 +2809,8 @@ function showPlans(found){
     + (miss.length ? ' No crossed-out price found for '+miss.join(', ')+'. If there is one, type it into “Price before promotion”.' : '')
     + (inf.length ? ' The crossed-out price for '+inf.join(', ')+' was worked out from the discount shown, so double-check it against the screenshot.' : '')
     + (plans.some(p=>p.childInferred) ? ' Some crossed-out child prices were worked out from the same discount, so check them too.' : '');
+  // after a Cart summary, keep its amounts and just highlight the matching plan
+  if(cartLock[st.product]){ const ix=plans.findIndex(p=>p.name.toLowerCase()===$('planName').value.trim().toLowerCase()); chosen=ix; update(); return; }
   pickPlan(sel>=0 ? sel : 0);
 }
 let readCtl=null;
@@ -2858,6 +2864,7 @@ function applyTrip(t){
   note(got.length ? 'Filled from your Travel information screenshot: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the trip details from that screenshot. Set them under the details.');
   update();
 }
+let cartLock = {};   // product -> true once a Cart summary has set the amounts
 function applyTravelCart(c){
   if(st.product!=='travel') setProduct('travel');
   const got=[], r2=v=>Math.round(v*100)/100;
@@ -2878,6 +2885,7 @@ function applyTravelCart(c){
   if(c.promoLabel){ $('promoLabel').value=c.promoLabel; }
   if($('original').value && $('price').value && +$('original').value <= +$('price').value) $('original').value='';
   chosen = c.plan ? plans.findIndex(p=>p.name.toLowerCase()===c.plan.toLowerCase()) : -1;
+  if(got.length) cartLock[st.product]=true;
   note(got.length ? 'Filled from your Cart summary: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the cart from that screenshot. Type the amounts under Choose plan.');
   update();
 }
@@ -3032,7 +3040,7 @@ async function addFiles(files){
       attached.push(im);
       if(r && r.policy && st.product==='travel'){ st.yearly = r.policy==='yearly'; }
       // Income's promotion banner: use its wording, and when no crossed-out price was read, work it out from the % off
-      if(r && r.promo && st.product==='travel'){ $('promoLabel').value = r.promo; }
+      if(r && r.promo && st.product==='travel' && !cartLock[st.product]){ $('promoLabel').value = r.promo; }   // the cart's wording wins
       if(r && st.product==='travel' && r.plans){ const pct = +(((r.promo||$('promoLabel').value||'').match(/(\d{1,2})\s*%\s*off/i)||[])[1]||0);
         if(pct>0 && pct<90) r.plans.forEach(p=>{ if(p.price!=null && !p.original){ p.original = Math.round(p.price/(1-pct/100)*100)/100; p.inferred = true; p.originalMissing = false; } }); }
       if(r) showPlans(r.plans||[]); else { $('readmsg').textContent='Couldn’t read the screenshot here. Type the plan’s prices under Choose plan.'; update(); }
