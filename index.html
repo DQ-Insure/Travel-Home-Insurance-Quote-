@@ -223,6 +223,10 @@ label.addon input{width:18px;height:18px;accent-color:var(--accent);margin:0;fle
 .ins-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--chip);align-self:flex-start}
 .ins{font:inherit;font-size:14.5px;font-weight:700;border:0;background:transparent;color:var(--muted);border-radius:999px;padding:8px 18px;cursor:pointer;min-height:40px}
 .ins[aria-pressed="true"]{background:var(--card);color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.drop.compact{padding:12px 14px;flex-direction:row;justify-content:center}
+.drop.compact b{font-weight:600;font-size:14px}
+.drop.over{border-color:var(--accent);background:rgba(232,113,10,.08)}
 #readbar:has(> #readmsg:empty){display:none}
 
 /* App shell */
@@ -291,11 +295,11 @@ h1.sec{margin:0;font-size:30px;font-weight:800;color:var(--navy);line-height:1.1
     <section class="card" id="c-shots" aria-labelledby="h-shots">
       <div class="card-h"><h3 id="h-shots">Screenshots</h3><button type="button" class="ghost" id="paste-more" hidden>Paste another</button></div>
       <p class="hint" id="s1-hint"></p>
-      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Paste, drop or choose screenshots">
-        <b>Ctrl+V to paste, or choose files</b>
-        <span>PNG or JPG</span>
-        <input type="file" id="file" accept="image/*" multiple hidden>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop, paste or choose screenshots">
+        <b id="drop-title">Drag screenshots here, paste (Ctrl+V or ⌘V), or click to choose files</b>
+        <span id="drop-sub">PNG or JPG · you can add several at once</span>
       </div>
+      <input type="file" id="file" class="vh" accept="image/*" multiple tabindex="-1" aria-hidden="true">
       <div class="tiles" id="thumbs"></div>
       <div class="msg" id="tripmsg" hidden></div>
       <div class="msg" id="readbar" hidden>
@@ -1781,6 +1785,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return out.filter(p => p.price);
   }
 
+  // ---- Income travel Cart summary: plan, number of adults/children, amounts, promotion wording ----
+  function isTravelCart(t){ return /cart\s*summ/i.test(t) && /\b(classic|deluxe|preferred)\b/i.test(t) && /total\s*amount/i.test(t) && /adult|child|family/i.test(t); }
+  function parseTravelCart(data){
+    const lines = (data.lines||[]).map(l => (l.text||'').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const amt = s => { const m = String(s).replace(/[Ss](?=\d)/g,'$').match(/\$\s?([\d,]+\.\d{2})/); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
+    const out = {};
+    const pl = lines.find(l => /^(classic|deluxe|preferred)\b/i.test(l)); if (pl){ const n = pl.match(/^(\w+)/)[1]; out.plan = n[0].toUpperCase()+n.slice(1).toLowerCase(); }
+    for (const l of lines){
+      let m;
+      if ((m = l.match(/^(\d{1,2})\s*adults?\b/i))){ out.adults = +m[1]; out.adultAmt = amt(l); }
+      else if ((m = l.match(/^(\d{1,2})\s*child(?:ren)?\b/i))){ out.children = +m[1]; out.childAmt = amt(l); }
+      else if (/^family\b/i.test(l)){ out.family = true; out.familyAmt = amt(l); }
+      else if (/^sub\s*total/i.test(l)) out.sub = amt(l);
+      else if (/^promotion\b/i.test(l)) out.promo = amt(l);
+      else if (/^total\s*amount/i.test(l)) out.total = amt(l);
+    }
+    // the amount can sit on its own line under the label
+    ['adultAmt','childAmt','familyAmt'].forEach(k => { if (out[k] === null){ const i = lines.findIndex(l => (k==='adultAmt'?/^\d+\s*adults?/i:k==='childAmt'?/^\d+\s*child/i:/^family/i).test(l)); if (i>=0 && lines[i+1]) out[k] = amt(lines[i+1]); } });
+    if (out.total == null){ const i = lines.findIndex(l => /^total\s*amount/i.test(l)); if (i>=0 && lines[i+1]) out.total = amt(lines[i+1]); }
+    // promotion wording: the lines between "Promotion" and "Total amount", without amounts
+    const pi = lines.findIndex(l => /^promotion\b/i.test(l)), ti = lines.findIndex(l => /^total\s*amount/i.test(l));
+    if (pi >= 0){ const words = lines.slice(pi+1, ti > pi ? ti : pi+4).filter(l => !/^-?\s*\$/.test(l)).join(' ').replace(/\s+/g,' ').trim(); if (words) out.promoLabel = words; }
+    return out;
+  }
+
   // ---- Domestic helper screenshots ----
   const NATIONALITIES = ['Philippines','Indonesia','Bangladesh','Cambodia','Hong Kong','India','Malaysia','Myanmar','Sri Lanka','Taiwan','Thailand'];
   function isHelperPage(t){ return /helper.{0,4}s?\s*nationality|helper\s*must\s*be/i.test(t); }
@@ -1864,6 +1893,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const cv = await prepare(dataUrl);
     const {data} = await worker.recognize(cv);
     const t = data.text || '';
+    if (isTravelCart(t)) return {kind:'travelcart', cart: parseTravelCart(data)};
     if (isLibTrip(t)) return {kind:'libtrip', trip: parseLibTrip(data)};
     if (isLibPlans(t)){
       let plans = await finishPlans(worker, cv, data, LIB_PLAN_RE);
@@ -2684,7 +2714,8 @@ function update(){
   $('sec-title').textContent = home ? 'Home quote' : helper ? 'Domestic helper quote' : lib ? 'Liberty travel quote' : 'Travel quote';
   const dTitle = home ? 'Property details' : helper ? 'Helper details' : 'Trip details';
   $('h-details').textContent = dTitle; $('chip-details').textContent = dTitle;
-  $('drop').hidden = shots.length>0 || attached.length>0; $('paste-more').hidden = !$('drop').hidden;
+  { const more = shots.length>0 || attached.length>0; $('drop').classList.toggle('compact', more); $('paste-more').hidden = !more; $('paste-more').textContent='Add files';
+    $('drop-title').textContent = more ? 'Add more: drag screenshots here, paste, or click to choose files' : 'Drag screenshots here, paste (Ctrl+V or ⌘V), or click to choose files'; $('drop-sub').hidden = more; }
   $('s1-hint').textContent = helper
     ? 'Paste the Policy information page to fill the helper’s details, the Plan selection page to fill the prices, and the Cart summary to fill the add-ons and promotion. The plans page is attached to the PDF.'
     : home
@@ -2827,6 +2858,29 @@ function applyTrip(t){
   note(got.length ? 'Filled from your Travel information screenshot: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the trip details from that screenshot. Set them under the details.');
   update();
 }
+function applyTravelCart(c){
+  if(st.product!=='travel') setProduct('travel');
+  const got=[], r2=v=>Math.round(v*100)/100;
+  const ratio = (c.total!=null && c.sub) ? c.total/c.sub : null;     // all promotions together, e.g. 50% off plus an extra 20%
+  if(c.plan){ $('planName').value=c.plan; got.push(c.plan); }
+  if(c.family){
+    st.family=true; got.push('Family');
+    if(c.familyAmt!=null) $('original').value=c.familyAmt.toFixed(2);
+    if(c.total!=null) $('price').value=c.total.toFixed(2);
+  } else if(c.adults){
+    st.family=false; st.adults=c.adults; st.children=c.children||0;
+    got.push(c.adults+' adult'+(c.adults===1?'':'s')+(c.children?', '+c.children+' child'+(c.children===1?'':'ren'):''));
+    if(c.adultAmt!=null){ $('original').value=r2(c.adultAmt/c.adults).toFixed(2); if(ratio!=null) $('price').value=r2(c.adultAmt/c.adults*ratio).toFixed(2); }
+    if(c.children && c.childAmt!=null){ $('corig').value=r2(c.childAmt/c.children).toFixed(2); if(ratio!=null) $('cprice').value=r2(c.childAmt/c.children*ratio).toFixed(2); }
+    else { $('cprice').value=''; $('corig').value=''; }
+  }
+  if(c.total!=null) got.push('total $'+c.total.toFixed(2));
+  if(c.promoLabel){ $('promoLabel').value=c.promoLabel; }
+  if($('original').value && $('price').value && +$('original').value <= +$('price').value) $('original').value='';
+  chosen = c.plan ? plans.findIndex(p=>p.name.toLowerCase()===c.plan.toLowerCase()) : -1;
+  note(got.length ? 'Filled from your Cart summary: '+got.join(' · ')+'. Check it matches.' : 'Couldn’t read the cart from that screenshot. Type the amounts under Choose plan.');
+  update();
+}
 function applyLibTrip(x){
   if(st.product!=='ltravel') setProduct('ltravel');
   const got=[];
@@ -2935,6 +2989,7 @@ async function addFiles(files){
       $('reread').disabled=false;
       const shot=(label, ok, status, att)=>{ if(/^(Reading|Loading)/.test($('readmsg').textContent)) $('readmsg').textContent=''; shots.push({label, ok, status, dataUrl:im.dataUrl, im: att ? im : null}); renderThumbs(); update(); };
       const planStatus = () => plans.length ? plans.length+' plan'+(plans.length===1?'':'s')+' read' : 'No prices found';
+      if(r && r.kind==='travelcart'){ applyTravelCart(r.cart); shot('Cart summary', filledOK(), filledOK()?'Filled travellers, amounts and promotion':'Amounts not read'); $('readbar').hidden = !attached.length; continue; }
       if(r && r.kind==='libtrip'){ applyLibTrip(r.trip); shot('Trip overview', filledOK(), filledOK()?'Filled trip details and price':'Details not read'); $('readbar').hidden = !attached.length; continue; }
       if(r && r.kind==='libplans'){
         if(st.product!=='ltravel') setProduct('ltravel');
@@ -3011,7 +3066,11 @@ drop.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('fil
 $('file').onchange=e=>{ addFiles(e.target.files); e.target.value=''; };
 drop.ondragover=e=>{ e.preventDefault(); drop.classList.add('over'); };
 drop.ondragleave=()=>drop.classList.remove('over');
-drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
+drop.ondrop=e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
+// a file dropped anywhere on the quote form counts too (and never makes the browser open the image instead)
+document.addEventListener('dragover', e=>{ if([...(e.dataTransfer?.types||[])].includes('Files')){ e.preventDefault(); if(!NO_SLOT[st.product]) drop.classList.add('over'); } });
+document.addEventListener('dragleave', e=>{ if(!e.relatedTarget) drop.classList.remove('over'); });
+document.addEventListener('drop', e=>{ if(!e.dataTransfer?.files?.length) return; e.preventDefault(); drop.classList.remove('over'); if(!NO_SLOT[st.product]) addFiles(e.dataTransfer.files); });
 document.addEventListener('paste',e=>{
   const files=[...(e.clipboardData?.items||[])].filter(it=>it.kind==='file' && it.type.startsWith('image/')).map(it=>it.getAsFile());
   if(files.length){ e.preventDefault(); addFiles(files); }
